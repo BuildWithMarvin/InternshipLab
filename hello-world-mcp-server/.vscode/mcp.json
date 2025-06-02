@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "hello-world-mcp-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["ts-node", "src/index.ts"]
+    }
+
+}}
