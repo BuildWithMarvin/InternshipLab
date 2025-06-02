@@ -11,8 +11,11 @@ const server = new McpServer({
     tools: {
       hello: {
         description: "Gibt Hello, World! zurück",
-        parameters: {},
+        parameters: {  type: "object",
+    properties: {},
+    required: []},
         handler: async () => ({
+          role: "assistant",
           content: [{ type: "text", text: "Hello, World!" }]
         })
       }
