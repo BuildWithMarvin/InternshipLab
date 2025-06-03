@@ -28,5 +28,3 @@ async function startServer() {
   await server.connect(transport);
   console.log("MCP Server läuft und gibt Hello World als Tool aus.");
 }
-
-startServer().catch(console.error);
