@@ -24,6 +24,11 @@ const transport = new StreamableHTTPServerTransport({
 
 app.post("/mcp", async (req, res) => {
   try {
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+    await server.connect(transport);
+
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
     if (!res.headersSent) {
@@ -37,8 +42,6 @@ app.post("/mcp", async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.connect(transport).then(() => {
-  app.listen(PORT, () => {
-    console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
-  });
+app.listen(PORT, () => {
+  console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
 });
