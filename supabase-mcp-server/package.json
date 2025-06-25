@@ -1,0 +1,29 @@
+{
+  "name": "supabase-mcp-server",
+  "version": "1.0.0",
+  "description": "Ein Supabase-mcp Server, der die Model Context Protocol (MCP) API implementiert.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --loader ts-node/esm src/server.ts",
+    "dev": "node --watch --loader ts-node/esm src/server.ts"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.3",
+    "@supabase/supabase-js": "^2.50.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.0.1",
+    "node-fetch": "^2.7.0",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.2",
+    "@types/node-fetch": "^2.6.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  }
+}

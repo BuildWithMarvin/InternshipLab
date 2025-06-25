@@ -1,0 +1,10 @@
+{
+
+  "servers": {
+    // https://github.com/ppl-ai/modelcontextprotocol/
+    "persons-server": {
+      "type": "http",
+      "url": "http://localhost:3003/mcp",
+    },
+  }
+}
