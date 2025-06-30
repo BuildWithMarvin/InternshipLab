@@ -1,14 +1,34 @@
-import 'dotenv/config'; 
+import "dotenv/config";
+import fs from "fs";
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { registerToolsPlaylist } from "./toolsPlaylist.js";
+import { registerToolsTracks } from "./toolTracks.js";
+import { registerToolsArtists } from "./toolArtists.js";
+import { registerToolsUsers } from "./toolUsers.js";
 
-const supabaseUrl = process.env.SUPABASE_URL 
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+function loadJsonFromFile(filepath: string): any {
+  try {
+    const fileContent = fs.readFileSync(filepath, "utf8");
+    return JSON.parse(fileContent);
+  } catch (error) {
+    console.error(`Error Loading JSON from file ${filepath}`);
+  }
+}
+
+const env = loadJsonFromFile("./config/config.development.json");
+
+console.log("Environment configuration:", env);
+
+const supabaseUrl = env.SUPABASE_URL;
+const supabaseKey = env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables. Please check your .env file.");
+  throw new Error(
+    "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables. Please check your .env file."
+  );
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -22,57 +42,14 @@ const server = new McpServer({
 });
 
 const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined, 
+  sessionIdGenerator: undefined,
 });
 
+registerToolsPlaylist(server, supabase);
+registerToolsTracks(server, supabase);
+registerToolsArtists(server, supabase);
+registerToolsUsers(server, supabase);
 
-server.tool(
-  "get_playlists",
-  "Gibt alle Playlists zurück",
-  {}, 
-  async () => {
-   
-    const { data, error } = await supabase.from('playlists').select('*');
-
-    if (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error fetching playlists: ${error.message ?? "Unknown error"}`,
-          }
-        ]
-      };
-    }
-
-    if (!data || data.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "Keine Playlists gefunden.",
-          }
-        ]
-      };
-    }
-
-    const playlistTexts = data.map(
-      (playlist, idx) => `${idx + 1}. ${playlist.name || "Unbenannte Playlist"}`
-    );
-    const text = `Gefundene Playlists (${data.length}):\n` + playlistTexts.join("\n");
-
-    return {
-      content: [
-        {
-          type: "text",
-          text,
-        }
-      ]
-    };
-  }
-);
-
-    
 app.post("/mcp", async (req, res) => {
   try {
     const transport = new StreamableHTTPServerTransport({
@@ -94,14 +71,4 @@ app.post("/mcp", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
-
 });
-
-
-
-
-
-
-
-
-

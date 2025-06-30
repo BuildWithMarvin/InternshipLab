@@ -171,6 +171,42 @@ server.tool(
   }
 );
 
+server.tool(
+  "remove_person",
+  "remove a new person to the database",
+  {
+    vorname: z.string().min(1).describe("First name of the person"),
+    nachname: z.string().min(1).describe("Last name of the person"),
+ 
+  },
+  async ({ vorname, nachname}) => {
+    const sql = "DELETE FROM PERSONEN WHERE VORNAME = ? AND NACHNAME = ?";
+    return new Promise((resolve) => {
+      con.query(sql, [vorname, nachname ], (error) => {
+        if (error) {
+          resolve({
+            content: [
+              {
+                type: "text",
+                text: `Error adding person: ${error.message}`,
+              },
+            ],
+          });
+          return;
+        }
+        resolve({
+          content: [
+            {
+              type: "text",
+              text: `Person successfully added:\nVorname: ${vorname}\nNachname: ${nachname}\n removed`,
+            },
+          ],
+        });
+      });
+    });
+  }
+);
+
 
 app.post("/mcp", async (req, res) => {
   try {
