@@ -8,7 +8,6 @@ import { registerToolsTracks } from "./toolTracks.js";
 import { registerToolsArtists } from "./toolArtists.js";
 import { registerToolsUsers } from "./toolUsers.js";
 
-// Supabase-URL und PAT aus Umgebungsvariablen lesen
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_PAT;
 
@@ -51,12 +50,6 @@ app.post("/mcp", async (req, res) => {
       });
     }
   }
-});
-
-app.get("/mcp", (req, res) => {
-    res.status(405).json({
-        error: "Method Not Allowed. Please use POST for JSON-RPC requests."
-    });
 });
 
 
