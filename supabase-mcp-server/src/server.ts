@@ -1,5 +1,4 @@
 import "dotenv/config";
-import fs from "fs";
 import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient } from "@supabase/supabase-js";
@@ -9,25 +8,13 @@ import { registerToolsTracks } from "./toolTracks.js";
 import { registerToolsArtists } from "./toolArtists.js";
 import { registerToolsUsers } from "./toolUsers.js";
 
-function loadJsonFromFile(filepath: string): any {
-  try {
-    const fileContent = fs.readFileSync(filepath, "utf8");
-    return JSON.parse(fileContent);
-  } catch (error) {
-    console.error(`Error Loading JSON from file ${filepath}`);
-  }
-}
-
-const env = loadJsonFromFile("./config/config.development.json");
-
-console.log("Environment configuration:", env);
-
-const supabaseUrl = env.SUPABASE_URL;
-const supabaseKey = env.SUPABASE_ANON_KEY;
+// Supabase-URL und PAT aus Umgebungsvariablen lesen
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_PAT;
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error(
-    "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables. Please check your .env file."
+    "Missing SUPABASE_URL or SUPABASE_PAT environment variables. Please check your Claude configuration."
   );
 }
 
@@ -41,22 +28,19 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined,
-});
-
 registerToolsPlaylist(server, supabase);
 registerToolsTracks(server, supabase);
 registerToolsArtists(server, supabase);
 registerToolsUsers(server, supabase);
 
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined,
+});
+
+await server.connect(transport);
+
 app.post("/mcp", async (req, res) => {
   try {
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await server.connect(transport);
-
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
     if (!res.headersSent) {
@@ -68,7 +52,16 @@ app.post("/mcp", async (req, res) => {
     }
   }
 });
-const PORT = process.env.PORT || 3000;
+
+app.get("/mcp", (req, res) => {
+    res.status(405).json({
+        error: "Method Not Allowed. Please use POST for JSON-RPC requests."
+    });
+});
+
+
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
 });
+
