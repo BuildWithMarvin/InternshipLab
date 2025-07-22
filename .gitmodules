@@ -1,0 +1,3 @@
+[submodule "mcpOAuthServer/inspector"]
+	path = mcpOAuthServer/inspector
+	url = https://github.com/mcp-auth/inspector.git

@@ -9,7 +9,8 @@ import { registerToolsArtists } from "./toolArtists.js";
 import { registerToolsUsers } from "./toolUsers.js";
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_PAT;
+const supabaseKey = process.env.SUPABASE_KEY;
+
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error(
@@ -33,20 +34,39 @@ registerToolsArtists(server, supabase);
 registerToolsUsers(server, supabase);
 
 const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined,
+  sessionIdGenerator: () => crypto.randomUUID(),
 });
 
-await server.connect(transport);
+try {
+  console.error("Starte server.connect...");
+  await server.connect(transport);
+  console.error("server.connect erfolgreich abgeschlossen.");
+} catch (err) {
+  console.error("Fehler beim server.connect:", err);
+  process.exit(1); // Programm beenden, falls Verbindung nicht klappt
+}
+
+
+
 
 app.post("/mcp", async (req, res) => {
+    console.error("----- Neue /mcp Anfrage -----");
+  console.error("Headers:", req.headers);
+  console.error("Body:", JSON.stringify(req.body, null, 2));
   try {
     await transport.handleRequest(req, res, req.body);
+
+    // Falls noch keine Antwort gesendet wurde
+    if (!res.headersSent) {
+      res.end();
+    }
   } catch (error) {
+    console.error("Fehler in /mcp:", error);
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: "2.0",
         error: { code: -32603, message: "Internal server error" },
-        id: null,
+        id: req.body?.id ?? null,
       });
     }
   }
@@ -55,6 +75,11 @@ app.post("/mcp", async (req, res) => {
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
-  console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
+  console.error(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
 });
+
+
+console.error(supabaseKey);
+console.error("Starte MCP HTTP server in 3 Sekunden...");
+
 
