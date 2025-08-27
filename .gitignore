@@ -1,6 +1,60 @@
 node_modules/
 build/
 **/.env
+# IDE and Editor files
+.vscode/
+
+# Environment variables
+.env
+
+# Claude Code configuration
+CLAUDE.md
+
+# Session and cookie files
+cookies.txt
+
+# Node.js configuration
+nodemon.js
+
+# TypeScript configuration
+tsconfig.json
+
+# MCP configuration files
+mcp-config.json
+*mcp-config*.json
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
 dist/
 supabase-mcp-server/config
 config/
+.vscode/
+
