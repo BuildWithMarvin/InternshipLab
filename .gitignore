@@ -1,14 +1,19 @@
 node_modules/
 build/
 **/.env
+
 # IDE and Editor files
 .vscode/
 
 # Environment variables
 .env
 
-# Claude Code configuration
+# Claude files and folders
 CLAUDE.md
+.claude/
+claude/
+**/claude/
+**/.claude/
 
 # Session and cookie files
 cookies.txt

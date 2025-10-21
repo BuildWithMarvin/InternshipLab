@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VTJ MCP Server - Login Success">
+  <title>VTJ MCP Server - Login Successful</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Login Successful!</h1>
+      <p>Your authentication token is ready</p>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="token-container">
+      <label>Your Authentication Token:</label>
+      <div id="tokenDisplay" class="token-display">
+        Loading token...
+      </div>
+      <button id="copyBtn" class="copy-btn">
+        Copy Token to Clipboard
+      </button>
+    </div>
+
+    <div class="instructions">
+      <h3>How to use this token with MCP Client:</h3>
+      <ol>
+        <li>Copy the token above using the "Copy Token" button</li>
+        <li>Open your MCP client configuration file (e.g., <code>claude_desktop_config.json</code>)</li>
+        <li>Add or update the VTJ MCP server configuration:</li>
+      </ol>
+      <pre style="background-color: #f8f9fa; padding: 12px; border-radius: 8px; overflow-x: auto; margin-top: 8px;"><code>{
+  "mcpServers": {
+    "vtj": {
+      "url": "http://localhost:3000/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}</code></pre>
+      <ol start="4">
+        <li>Replace <code>YOUR_TOKEN_HERE</code> with your copied token</li>
+        <li>Restart your MCP client to apply the changes</li>
+        <li>The token is valid for 24 hours</li>
+      </ol>
+    </div>
+
+    <div style="margin-top: 24px;">
+      <a href="/" class="btn btn-secondary">Back to Login</a>
+    </div>
+  </div>
+
+  <script>
+    // Get elements
+    const tokenDisplay = document.getElementById('tokenDisplay');
+    const copyBtn = document.getElementById('copyBtn');
+    const messageDiv = document.getElementById('message');
+
+    // Show message function
+    function showMessage(text, type) {
+      messageDiv.textContent = text;
+      messageDiv.className = `message message-${type} show`;
+
+      // Auto-hide messages after 3 seconds
+      setTimeout(() => {
+        messageDiv.className = 'message';
+      }, 3000);
+    }
+
+    // Get token from sessionStorage
+    function getToken() {
+      const token = sessionStorage.getItem('vtj_token');
+
+      if (!token) {
+        // No token found - redirect to login
+        showMessage('No token found. Please login first.', 'error');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+        return null;
+      }
+
+      return token;
+    }
+
+    // Display token
+    function displayToken() {
+      const token = getToken();
+
+      if (token) {
+        tokenDisplay.textContent = token;
+        // Clear token from sessionStorage for security
+        sessionStorage.removeItem('vtj_token');
+      } else {
+        tokenDisplay.textContent = 'No token available';
+      }
+    }
+
+    // Copy token to clipboard
+    async function copyToClipboard() {
+      const token = tokenDisplay.textContent;
+
+      if (!token || token === 'Loading token...' || token === 'No token available') {
+        showMessage('No token to copy', 'error');
+        return;
+      }
+
+      try {
+        // Modern clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(token);
+          showMessage('Token copied to clipboard!', 'success');
+          copyBtn.classList.add('copied');
+          copyBtn.textContent = 'Copied!';
+
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.textContent = 'Copy Token to Clipboard';
+          }, 2000);
+        } else {
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = token;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+
+          try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+              showMessage('Token copied to clipboard!', 'success');
+              copyBtn.classList.add('copied');
+              copyBtn.textContent = 'Copied!';
+
+              setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.textContent = 'Copy Token to Clipboard';
+              }, 2000);
+            } else {
+              throw new Error('Copy command failed');
+            }
+          } catch (err) {
+            console.error('Fallback copy failed:', err);
+            showMessage('Failed to copy token. Please select and copy manually.', 'error');
+          } finally {
+            document.body.removeChild(textArea);
+          }
+        }
+      } catch (error) {
+        console.error('Copy error:', error);
+        showMessage('Failed to copy token. Please select and copy manually.', 'error');
+      }
+    }
+
+    // Event listeners
+    copyBtn.addEventListener('click', copyToClipboard);
+
+    // Allow copying by clicking on token display
+    tokenDisplay.addEventListener('click', () => {
+      // Select all text in token display
+      const range = document.createRange();
+      range.selectNodeContents(tokenDisplay);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      showMessage('Token text selected. Press Ctrl+C (or Cmd+C) to copy.', 'success');
+    });
+
+    // Display token on page load
+    window.addEventListener('load', displayToken);
+
+    // Keyboard shortcut: Ctrl+C or Cmd+C to copy when token is focused
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        const selection = window.getSelection();
+        if (selection.toString() === tokenDisplay.textContent) {
+          showMessage('Token copied!', 'success');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
