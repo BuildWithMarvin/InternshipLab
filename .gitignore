@@ -61,5 +61,5 @@ Thumbs.db
 dist/
 supabase-mcp-server/config
 config/
-.vscode/
+
 

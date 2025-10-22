@@ -1,6 +1,6 @@
 # VTJ MCP Authentication Server
 
-HTTP-based Model Context Protocol (MCP) Server für Visual Trading Journal (VTJ) API Integration mit Claude Desktop.
+HTTP-based Model Context Protocol (MCP)Authentication Server
 
 ## 🚀 Quick Start
 
@@ -16,12 +16,6 @@ Kopiere `.env.example` zu `.env` und passe die Werte an:
 
 ```bash
 cp .env.example .env
-```
-
-**Wichtig:** Ändere `ENCRYPTION_SECRET` zu einem sicheren, zufälligen String (min. 32 Zeichen):
-
-```env
-ENCRYPTION_SECRET=dein-sehr-sicherer-geheimer-schluessel-mindestens-32-zeichen
 ```
 
 ### 3. Server starten
@@ -41,34 +35,15 @@ npm start
 2. Logge dich mit deinen VTJ-Credentials ein
 3. Kopiere den angezeigten Token
 
-### 5. Claude Desktop konfigurieren
-
-**Config-Datei-Location:**
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Linux:** `~/.config/Claude/claude_desktop_config.json`
+### 5. Claude Desktop und VSC Konfiguration konfiguration
 
 **Config-Inhalt:**
 
-```json
-{
-  "mcpServers": {
-    "vtj-auth-server": {
-      "url": "http://localhost:3000/mcp",
-      "transport": {
-        "type": "http"
-      },
-      "env": {
-        "TOKEN": "DEIN_KOPIERTER_TOKEN_HIER"
-      }
-    }
-  }
-}
-```
+Siehe: 
 
-### 6. Claude Desktop neu starten
+MCPVTJ/claudeconfig.json
 
-Starte Claude Desktop komplett neu, um den MCP-Server zu laden.
+MCPVTJ/.vscode/mcp.json
 
 ## 📋 Features
 
@@ -219,6 +194,14 @@ curl -X POST http://localhost:3000/api/validate-token \
   -d '{"token":"your_token_here"}'
 ```
 
+### MCP Inspector
+Der MCP Inspector ist als Dev-Dependency installiert und ermöglicht das interaktive Testen der MCP-Tools.
+
+```bash
+# MCP Server mit Inspector starten
+npx @modelcontextprotocol/inspector node src/server.ts
+```
+
 ## 📝 Scripts
 
 ```bash
@@ -234,57 +217,6 @@ npm start
 # Build-Ordner löschen
 npm run clean
 ```
-
-## 🐛 Troubleshooting
-
-### Server startet nicht
-
-**Problem:** Port bereits in Verwendung
-```bash
-# Port prüfen
-netstat -ano | findstr :3000
-
-# Windows: Prozess beenden
-taskkill /PID <PID> /F
-
-# Linux/Mac: Prozess beenden
-kill -9 <PID>
-```
-
-**Problem:** Fehlende Environment-Variable
-```
-Error: Missing required environment variables: ENCRYPTION_SECRET
-```
-
-**Lösung:** `.env` Datei erstellen und `ENCRYPTION_SECRET` setzen (min. 32 Zeichen)
-
-### Token-Probleme
-
-**Problem:** Token ungültig
-- Token ist abgelaufen (24h Gültigkeit)
-- Neuen Token holen: http://localhost:3000
-
-**Problem:** Token-Decryption-Fehler
-- `ENCRYPTION_SECRET` hat sich geändert
-- Alle Tokens werden ungültig, wenn Secret geändert wird
-- Neue Tokens generieren mit neuem Secret
-
-### Claude Desktop erkennt Server nicht
-
-1. **Server läuft?**
-   ```bash
-   curl http://localhost:3000/health
-   ```
-
-2. **Config korrekt?**
-   - JSON-Syntax prüfen
-   - URL korrekt: `http://localhost:3000/mcp`
-   - Token vorhanden und gültig
-
-3. **Claude Desktop neu starten**
-   - Komplett beenden (auch Background-Prozesse)
-   - Neu öffnen
-
 ## 📚 API-Dokumentation
 
 Vollständige API-Dokumentation verfügbar unter:
@@ -292,19 +224,4 @@ Vollständige API-Dokumentation verfügbar unter:
 GET http://localhost:3000/api/info
 ```
 
-## 🔗 Links
 
-- [Model Context Protocol (MCP) Docs](https://modelcontextprotocol.io/)
-- [Visual Trading Journal](https://visualtradingjournal.com/)
-
-## 📄 License
-
-MIT
-
-## 🤝 Contributing
-
-Contributions sind willkommen! Bitte erstelle einen Pull Request.
-
----
-
-**Hinweis:** Dieses Projekt ist für den Einsatz mit Claude Desktop optimiert und implementiert das Model Context Protocol über HTTP.
