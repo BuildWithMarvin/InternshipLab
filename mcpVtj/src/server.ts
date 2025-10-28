@@ -1,4 +1,4 @@
-// Main HTTP Server Implementation
+// Hauptimplementierung des HTTP-Servers
 
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -7,12 +7,12 @@ import { fileURLToPath } from 'url';
 import { createMCPRouter } from './mcp/index.js';
 import { createWebApiRouter } from './web/index.js';
 
-// ES Module __dirname equivalent
+// Entsprechung zu __dirname für ES-Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Server Configuration
+ * Serverkonfiguration
  */
 export interface ServerConfig {
   port: number;
@@ -22,42 +22,42 @@ export interface ServerConfig {
 }
 
 /**
- * Creates and configures the Express application
+ * Erstellt und konfiguriert die Express-Anwendung
  */
 export function createApp(): Express {
   const app = express();
 
-  // ==================== MIDDLEWARE SETUP ====================
+  // ==================== MIDDLEWARE-KONFIGURATION ====================
 
   /**
-   * CORS Configuration
-   * Allow cross-origin requests from configured origins
+   * CORS-Konfiguration
+   * Erlaubt Cross-Origin-Anfragen von konfigurierten Ursprüngen
    */
   const corsOptions = {
     origin: process.env.CORS_ORIGINS?.split(',') || '*',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true,
-    maxAge: 86400 // 24 hours
+    maxAge: 86400 // 24 Stunden
   };
 
   app.use(cors(corsOptions));
 
   /**
-   * JSON Body Parser
-   * Parse JSON request bodies with size limit
+   * JSON-Body-Parser
+   * Parst JSON-Anfragekörper mit Größenlimit
    */
   app.use(express.json({ limit: '10mb' }));
 
   /**
-   * URL-Encoded Body Parser
-   * Parse URL-encoded form data
+   * URL-Encoded-Body-Parser
+   * Parst URL-kodierte Formulardaten
    */
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   /**
-   * Request Logging Middleware
-   * Log all incoming requests
+   * Request-Logging-Middleware
+   * Protokolliert alle eingehenden Anfragen
    */
   app.use((req: Request, _res: Response, next: NextFunction) => {
     const timestamp = new Date().toISOString();
@@ -65,65 +65,65 @@ export function createApp(): Express {
     next();
   });
 
-  // ==================== STATIC FILE SERVING ====================
+  // ==================== AUSLIEFERUNG STATISCHER DATEIEN ====================
 
   /**
-   * Serve static files from public directory
-   * CSS, JS, images, etc.
+   * Liefert statische Dateien aus dem Ordner public aus
+   * CSS, JS, Bilder, etc.
    */
   const publicPath = path.join(__dirname, '../public');
   app.use(express.static(publicPath, {
-    maxAge: '1h', // Cache static files for 1 hour
+    maxAge: '1h', // Statische Dateien 1 Stunde cachen
     etag: true
   }));
 
-  console.log(`[Server] Static files serving from: ${publicPath}`);
+  // Ausgabe unterdrückt
 
-  // ==================== API ROUTES ====================
+  // ==================== API-ROUTEN ====================
 
   /**
-   * Web API Routes (/api/*)
-   * Login, token validation, status
+   * Web-API-Routen (/api/*)
+   * Login, Tokenvalidierung, Status
    */
   const webApiRouter = createWebApiRouter();
   app.use('/api', webApiRouter);
-  console.log('[Server] Web API routes registered at /api');
+  // Ausgabe unterdrückt
 
   /**
-   * MCP Protocol Routes (/mcp/*)
-   * MCP server endpoints
+   * MCP-Protokollrouten (/mcp/*)
+   * MCP-Server-Endpunkte
    */
   const mcpRouter = createMCPRouter();
   app.use('/mcp', mcpRouter);
-  console.log('[Server] MCP routes registered at /mcp');
+  // Ausgabe unterdrückt
 
-  // ==================== HTML ROUTES ====================
+  // ==================== HTML-ROUTEN ====================
 
   /**
-   * GET / - Login page
+   * GET / – Login-Seite
    */
   app.get('/', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicPath, 'index.html'));
   });
 
   /**
-   * GET /success - Success page with token display
+   * GET /success – Erfolgsseite mit Anzeige des Tokens
    */
   app.get('/success.html', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicPath, 'success.html'));
   });
 
   /**
-   * GET /success - Alternative success route
+   * GET /success – Alternative Erfolgsroute
    */
   app.get('/success', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicPath, 'success.html'));
   });
 
-  // ==================== HEALTH CHECK ====================
+  // ==================== GESUNDHEITSPRÜFUNG ====================
 
   /**
-   * GET /health - Server health check
+   * GET /health – Server-Gesundheitsprüfung
    */
   app.get('/health', (_req: Request, res: Response) => {
     res.json({
@@ -135,10 +135,10 @@ export function createApp(): Express {
     });
   });
 
-  // ==================== ERROR HANDLING ====================
+  // ==================== FEHLERBEHANDLUNG ====================
 
   /**
-   * 404 Handler - Route not found
+   * 404-Handler – Route nicht gefunden
    */
   app.use((req: Request, res: Response) => {
     console.log(`[Server] 404 - Route not found: ${req.method} ${req.path}`);
@@ -163,15 +163,15 @@ export function createApp(): Express {
   });
 
   /**
-   * Global Error Handler
-   * Catches all unhandled errors
+   * Globaler Fehler-Handler
+   * Fängt alle unbehandelten Fehler ab
    */
   app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
     console.error('[Server] Unhandled error:', err);
     console.error(`[Server] Request: ${req.method} ${req.path}`);
     console.error('[Server] Stack:', err.stack);
 
-    // Don't leak error details in production
+    // In Produktion keine Fehlerinterna preisgeben
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     res.status(500).json({
@@ -189,7 +189,7 @@ export function createApp(): Express {
 }
 
 /**
- * Gets server configuration from environment variables
+ * Liest Serverkonfiguration aus Umgebungsvariablen
  */
 export function getServerConfig(): ServerConfig {
   const port = parseInt(process.env.PORT || '3000', 10);
@@ -206,7 +206,7 @@ export function getServerConfig(): ServerConfig {
 }
 
 /**
- * Validates required environment variables
+ * Validiert erforderliche Umgebungsvariablen
  */
 export function validateEnvironment(): void {
   const requiredEnvVars = [
@@ -225,7 +225,7 @@ export function validateEnvironment(): void {
     );
   }
 
-  // Validate ENCRYPTION_SECRET length
+  // Länge von ENCRYPTION_SECRET prüfen
   const encryptionSecret = process.env.ENCRYPTION_SECRET;
   if (encryptionSecret && encryptionSecret.length < 32) {
     throw new Error(
@@ -233,13 +233,15 @@ export function validateEnvironment(): void {
     );
   }
 
-  console.log('[Server] Environment variables validated successfully');
+  // Ausgabe unterdrückt
 }
 
 /**
- * Prints server startup information
+ * Gibt Startinformationen des Servers aus
  */
 export function printStartupInfo(config: ServerConfig): void {
+  // Ausgabe unterdrückt: nur eine Startmeldung gewünscht
+  return;
   console.log('\n' + '='.repeat(60));
   console.log('  VTJ MCP Authentication Server');
   console.log('='.repeat(60));

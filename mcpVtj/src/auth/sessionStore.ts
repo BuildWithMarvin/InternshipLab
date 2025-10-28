@@ -2,9 +2,9 @@ import { decryptToken, isTokenValid } from './tokenManager.js';
 import { SessionData, SessionDataSchema } from './types.js';
 
 /**
- * Validates a token and checks if it's still valid
- * @param token - Encrypted token string
- * @returns true if token is valid, false otherwise
+ * Validiert ein Token und prüft, ob es noch gültig ist
+ * @param token - Verschlüsselter Token-String
+ * @returns true, wenn das Token gültig ist, sonst false
  */
 export function validateToken(token: string): boolean {
   if (!token || typeof token !== 'string') {
@@ -15,28 +15,28 @@ export function validateToken(token: string): boolean {
 }
 
 /**
- * Extracts session data from an encrypted token
- * @param token - Encrypted token string
- * @returns Session data or null if token is invalid
+ * Extrahiert Sitzungsdaten aus einem verschlüsselten Token
+ * @param token - Verschlüsselter Token-String
+ * @returns Sitzungsdaten oder null, wenn das Token ungültig ist
  */
 export function extractSessionData(token: string): SessionData | null {
   try {
-    // Validate token first
+    // Zuerst Token validieren
     if (!validateToken(token)) {
       return null;
     }
 
-    // Decrypt token (already validated by decryptToken using Zod)
+    // Token entschlüsseln (wurde bereits durch decryptToken mit Zod geprüft)
     const payload = decryptToken(token);
 
-    // Additional validation using SessionDataSchema to ensure data integrity
+    // Zusätzliche Validierung mittels SessionDataSchema zur Sicherstellung der Datenintegrität
     const sessionData: SessionData = {
       vtjSessionId: payload.vtjSessionId,
       depotId: payload.depotId,
       expiresAt: payload.expiresAt
     };
 
-    // Validate extracted session data
+    // Extrahierte Sitzungsdaten validieren
     const validationResult = SessionDataSchema.safeParse(sessionData);
     if (!validationResult.success) {
       console.error('[Session Store] Session data validation failed:', validationResult.error);
@@ -45,17 +45,17 @@ export function extractSessionData(token: string): SessionData | null {
 
     return validationResult.data;
   } catch (error) {
-    // Token is invalid or decryption failed
+    // Token ist ungültig oder Entschlüsselung fehlgeschlagen
     console.error('[Session Store] Failed to extract session data:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 }
 
 /**
- * Extracts VTJ session ID from token
- * Helper function for quick session ID extraction
- * @param token - Encrypted token string
- * @returns VTJ session ID or null if token is invalid
+ * Extrahiert die VTJ-Sitzungs-ID aus dem Token
+ * Hilfsfunktion zur schnellen Extraktion der Sitzungs-ID
+ * @param token - Verschlüsselter Token-String
+ * @returns VTJ-Sitzungs-ID oder null, wenn das Token ungültig ist
  */
 export function getVtjSessionId(token: string): string | null {
   const sessionData = extractSessionData(token);
@@ -63,10 +63,10 @@ export function getVtjSessionId(token: string): string | null {
 }
 
 /**
- * Extracts depot ID from token
- * Helper function for quick depot ID extraction
- * @param token - Encrypted token string
- * @returns Depot ID or null if token is invalid
+ * Extrahiert die Depot-ID aus dem Token
+ * Hilfsfunktion zur schnellen Extraktion der Depot-ID
+ * @param token - Verschlüsselter Token-String
+ * @returns Depot-ID oder null, wenn das Token ungültig ist
  */
 export function getDepotId(token: string): string | null {
   const sessionData = extractSessionData(token);
@@ -74,15 +74,15 @@ export function getDepotId(token: string): string | null {
 }
 
 /**
- * Checks if token is expired
- * @param token - Encrypted token string
- * @returns true if token is expired, false otherwise or if token is invalid
+ * Prüft, ob das Token abgelaufen ist
+ * @param token - Verschlüsselter Token-String
+ * @returns true, wenn das Token abgelaufen ist, sonst false bzw. bei Ungültigkeit
  */
 export function isTokenExpired(token: string): boolean {
   try {
     const sessionData = extractSessionData(token);
     if (!sessionData) {
-      return true; // Invalid token is considered expired
+      return true; // Ungültiges Token gilt als abgelaufen
     }
 
     const now = Date.now();
@@ -93,9 +93,9 @@ export function isTokenExpired(token: string): boolean {
 }
 
 /**
- * Gets remaining time until token expires
- * @param token - Encrypted token string
- * @returns Remaining time in milliseconds, or 0 if expired/invalid
+ * Ermittelt die verbleibende Zeit bis zum Ablauf des Tokens
+ * @param token - Verschlüsselter Token-String
+ * @returns Verbleibende Zeit in Millisekunden, oder 0 bei Ablauf/Ungültigkeit
  */
 export function getTokenRemainingTime(token: string): number {
   try {

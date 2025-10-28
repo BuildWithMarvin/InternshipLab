@@ -1,10 +1,10 @@
-// TypeScript Interfaces for Authentication and Session Management with Zod Validation
+// TypeScript-Schnittstellen für Authentifizierung und Sitzungsverwaltung mit Zod-Validierung
 
 import { z } from 'zod';
 
 /**
- * Zod Schema for Token Payload
- * Validates and sanitizes token payload data to prevent injection attacks
+ * Zod-Schema für den Token-Payload
+ * Validiert und bereinigt Payload-Daten, um Injektionsangriffe zu verhindern
  */
 export const TokenPayloadSchema = z.object({
   vtjSessionId: z.string()
@@ -27,11 +27,11 @@ export const TokenPayloadSchema = z.object({
       (timestamp) => timestamp > Date.now(),
       'Expiration timestamp must be in the future'
     )
-}).strict(); // Reject unknown properties
+}).strict(); // Unbekannte Eigenschaften zurückweisen
 
 /**
- * Zod Schema for Session Data
- * Same as TokenPayload but allows expired timestamps (for validation purposes)
+ * Zod-Schema für Sitzungsdaten
+ * Entspricht dem TokenPayload, erlaubt jedoch abgelaufene Zeitstempel (für Validierungszwecke)
  */
 export const SessionDataSchema = z.object({
   vtjSessionId: z.string()
@@ -50,11 +50,11 @@ export const SessionDataSchema = z.object({
   expiresAt: z.number()
     .int('Expiration timestamp must be an integer')
     .positive('Expiration timestamp must be positive')
-}).strict(); // Reject unknown properties
+}).strict(); // Unbekannte Eigenschaften zurückweisen
 
 /**
- * Zod Schema for VTJ Login Response
- * Validates data received from VTJ API
+ * Zod-Schema für die VTJ-Login-Antwort
+ * Validiert Daten, die von der VTJ-API empfangen werden
  */
 export const VTJLoginResponseSchema = z.object({
   sessionId: z.string()
@@ -83,11 +83,11 @@ export const VTJLoginResponseSchema = z.object({
   message: z.string()
     .max(500, 'Message too long')
     .optional()
-}).strict(); // Reject unknown properties
+}).strict(); // Unbekannte Eigenschaften zurückweisen
 
 /**
- * TypeScript Types inferred from Zod Schemas
- * These ensure type safety and schema validation are always in sync
+ * Von Zod-Schemata abgeleitete TypeScript-Typen
+ * Stellen sicher, dass Typensicherheit und Schemenvalidierung stets übereinstimmen
  */
 export type TokenPayload = z.infer<typeof TokenPayloadSchema>;
 export type SessionData = z.infer<typeof SessionDataSchema>;

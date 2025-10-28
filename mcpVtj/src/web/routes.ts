@@ -1,4 +1,4 @@
-// Web API Routes for VTJ Authentication Server
+// Web-API-Routen für den VTJ-Authentifizierungsserver
 
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -12,12 +12,12 @@ import {
 } from './validation.js';
 
 /**
- * Server URL for login links
+ * Server-URL für Login-Links
  */
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
 
 /**
- * API Response Types
+ * API-Antworttypen
  */
 interface SuccessResponse {
   success: true;
@@ -36,20 +36,20 @@ interface ErrorResponse {
 type ApiResponse = SuccessResponse | ErrorResponse;
 
 /**
- * Rate Limiter for Login Attempts
- * Max 5 attempts per minute per IP
+ * Rate Limiter für Login-Versuche
+ * Maximal 5 Versuche pro Minute und IP
  */
 const loginRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // 5 requests per windowMs
+  windowMs: 60 * 1000, // 1 Minute
+  max: 5, // 5 Anfragen pro Fenster
   message: {
     success: false,
     error: 'rate_limit_exceeded',
     message: 'Too many login attempts. Please try again later.',
     help: 'Maximum 5 login attempts per minute allowed.'
   },
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  standardHeaders: true, // Rate-Limit-Infos in `RateLimit-*`-Headern zurückgeben
+  legacyHeaders: false, // `X-RateLimit-*`-Header deaktivieren
   handler: (req: Request, res: Response) => {
     console.log(`[API] Rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
@@ -62,12 +62,12 @@ const loginRateLimiter = rateLimit({
 });
 
 /**
- * Rate Limiter for Token Validation
- * Max 20 attempts per minute per IP
+ * Rate Limiter für Tokenvalidierung
+ * Maximal 20 Versuche pro Minute und IP
  */
 const validateTokenRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20, // 20 requests per windowMs
+  windowMs: 60 * 1000, // 1 Minute
+  max: 20, // 20 Anfragen pro Fenster
   message: {
     success: false,
     error: 'rate_limit_exceeded',
@@ -78,20 +78,20 @@ const validateTokenRateLimiter = rateLimit({
 });
 
 /**
- * Creates Express router for Web API endpoints
+ * Erstellt einen Express-Router für Web-API-Endpunkte
  */
 export function createWebApiRouter(): Router {
   const router = Router();
 
   /**
    * POST /api/login
-   * Authenticates user with VTJ credentials and returns encrypted token
+   * Authentifiziert den Benutzer mit VTJ-Zugangsdaten und gibt ein verschlüsseltes Token zurück
    */
   router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
     console.log(`[API] Login request from IP: ${req.ip}`);
 
     try {
-      // Validate request body
+      // Anfragekörper validieren
       const validation = validateLoginRequest(req.body);
 
       if (!validation.valid) {
@@ -106,25 +106,25 @@ export function createWebApiRouter(): Router {
 
       const { username, password } = validation.data!;
 
-      // Attempt VTJ login
+      // VTJ-Login versuchen
       try {
         console.log(`[API] Attempting VTJ login for user: ${username}`);
         const loginResponse = await vtjLogin(username, password);
 
         console.log(`[API] VTJ login successful for user: ${username}`);
 
-        // Create token payload
+        // Token-Payload erstellen
         const tokenPayload = createTokenPayload(
           loginResponse.sessionId,
           loginResponse.depotId
         );
 
-        // Encrypt token
+        // Token verschlüsseln
         const encryptedToken = encryptToken(tokenPayload);
 
         console.log(`[API] Token generated for user: ${username}`);
 
-        // Success response
+        // Erfolgsantwort
         const successResponse: SuccessResponse = {
           success: true,
           token: encryptedToken,
@@ -133,12 +133,12 @@ export function createWebApiRouter(): Router {
 
         return res.status(200).json(successResponse);
       } catch (loginError) {
-        // Handle VTJ API errors
+      // VTJ-API-Fehler behandeln
         console.error(`[API] VTJ login failed for user ${username}:`, loginError);
 
         const errorMessage = loginError instanceof Error ? loginError.message : 'Login failed';
 
-        // Check for specific error types
+      // Auf spezifische Fehlertypen prüfen
         let error = 'authentication_failed';
         let message = 'Invalid username or password';
         let statusCode = 401;
@@ -166,7 +166,7 @@ export function createWebApiRouter(): Router {
         return res.status(statusCode).json(errorResponse);
       }
     } catch (error) {
-      // Handle unexpected errors
+      // Unerwartete Fehler behandeln
       console.error('[API] Unexpected error in login handler:', error);
 
       const errorResponse: ErrorResponse = {
@@ -181,13 +181,13 @@ export function createWebApiRouter(): Router {
 
   /**
    * POST /api/validate-token
-   * Validates an encrypted token
+   * Validiert ein verschlüsseltes Token
    */
   router.post('/validate-token', validateTokenRateLimiter, async (req: Request, res: Response) => {
     console.log(`[API] Token validation request from IP: ${req.ip}`);
 
     try {
-      // Validate token input
+      // Token-Eingabe validieren
       const validation = validateToken(req.body.token);
 
       if (!validation.valid) {
@@ -203,7 +203,7 @@ export function createWebApiRouter(): Router {
 
       const token = validation.sanitized!;
 
-      // Validate token
+      // Token prüfen
       try {
         const isValid = validateTokenData(token);
 
@@ -240,7 +240,7 @@ export function createWebApiRouter(): Router {
         return res.status(401).json(errorResponse);
       }
     } catch (error) {
-      // Handle unexpected errors
+      // Unerwartete Fehler behandeln
       console.error('[API] Unexpected error in validate-token handler:', error);
 
       const errorResponse: ErrorResponse = {
@@ -255,7 +255,7 @@ export function createWebApiRouter(): Router {
 
   /**
    * GET /api/status
-   * Health check endpoint for server status
+   * Health-Check-Endpunkt für den Serverstatus
    */
   router.get('/status', (_req: Request, res: Response) => {
     const successResponse: SuccessResponse = {
@@ -275,7 +275,7 @@ export function createWebApiRouter(): Router {
 
   /**
    * GET /api/info
-   * Returns API information and endpoints
+   * Liefert API-Informationen und Endpunkte
    */
   router.get('/info', (_req: Request, res: Response) => {
     const successResponse: SuccessResponse = {

@@ -1,7 +1,7 @@
-// Input Validation and Sanitization Utilities
+// Eingabevalidierungs- und Bereinigungswerkzeuge
 
 /**
- * Validation Result
+ * Validierungsergebnis
  */
 export interface ValidationResult {
   valid: boolean;
@@ -10,7 +10,7 @@ export interface ValidationResult {
 }
 
 /**
- * Login Request Validation
+ * Validierung der Login-Anfrage
  */
 export interface LoginRequest {
   username: string;
@@ -18,18 +18,18 @@ export interface LoginRequest {
 }
 
 /**
- * Sanitizes a string by removing potentially dangerous characters
- * while preserving valid input
+ * Bereinigt einen String durch Entfernen potenziell gefährlicher Zeichen,
+ * wobei gültige Eingaben erhalten bleiben
  */
 export function sanitizeString(input: string, maxLength: number = 255): string {
   if (typeof input !== 'string') {
     return '';
   }
 
-  // Trim whitespace
+  // Leerzeichen trimmen
   let sanitized = input.trim();
 
-  // Limit length
+  // Länge begrenzen
   if (sanitized.length > maxLength) {
     sanitized = sanitized.substring(0, maxLength);
   }
@@ -38,13 +38,13 @@ export function sanitizeString(input: string, maxLength: number = 255): string {
 }
 
 /**
- * Validates username
- * - Must be a non-empty string
- * - Length between 3 and 100 characters
- * - Alphanumeric, dots, underscores, hyphens, @ allowed
+ * Validiert den Benutzernamen
+ * - Muss ein nicht-leerer String sein
+ * - Länge zwischen 3 und 100 Zeichen
+ * - Alphanumerisch, Punkte, Unterstriche, Bindestriche, @ erlaubt
  */
 export function validateUsername(username: any): ValidationResult {
-  // Check if username exists
+  // Prüfen, ob ein Benutzername vorhanden ist
   if (!username) {
     return {
       valid: false,
@@ -52,7 +52,7 @@ export function validateUsername(username: any): ValidationResult {
     };
   }
 
-  // Check if username is a string
+  // Prüfen, ob der Benutzername ein String ist
   if (typeof username !== 'string') {
     return {
       valid: false,
@@ -60,10 +60,10 @@ export function validateUsername(username: any): ValidationResult {
     };
   }
 
-  // Sanitize
+  // Bereinigen
   const sanitized = sanitizeString(username, 100);
 
-  // Check minimum length
+  // Minimallänge prüfen
   if (sanitized.length < 3) {
     return {
       valid: false,
@@ -71,7 +71,7 @@ export function validateUsername(username: any): ValidationResult {
     };
   }
 
-  // Check maximum length
+  // Maximallänge prüfen
   if (sanitized.length > 100) {
     return {
       valid: false,
@@ -79,7 +79,7 @@ export function validateUsername(username: any): ValidationResult {
     };
   }
 
-  // Check for valid characters (alphanumeric, dots, underscores, hyphens, @)
+  // Auf gültige Zeichen prüfen (alphanumerisch, Punkte, Unterstriche, Bindestriche, @)
   const usernameRegex = /^[a-zA-Z0-9._@-]+$/;
   if (!usernameRegex.test(sanitized)) {
     return {
@@ -95,12 +95,12 @@ export function validateUsername(username: any): ValidationResult {
 }
 
 /**
- * Validates password
- * - Must be a non-empty string
- * - Length between 6 and 255 characters
+ * Validiert das Passwort
+ * - Muss ein nicht-leerer String sein
+ * - Länge zwischen 6 und 255 Zeichen
  */
 export function validatePassword(password: any): ValidationResult {
-  // Check if password exists
+  // Prüfen, ob ein Passwort vorhanden ist
   if (!password) {
     return {
       valid: false,
@@ -108,7 +108,7 @@ export function validatePassword(password: any): ValidationResult {
     };
   }
 
-  // Check if password is a string
+  // Prüfen, ob das Passwort ein String ist
   if (typeof password !== 'string') {
     return {
       valid: false,
@@ -116,7 +116,7 @@ export function validatePassword(password: any): ValidationResult {
     };
   }
 
-  // Check minimum length (don't sanitize password to preserve exact input)
+  // Minimallänge prüfen (Passwort nicht bereinigen, um Eingabe exakt zu bewahren)
   if (password.length < 6) {
     return {
       valid: false,
@@ -124,7 +124,7 @@ export function validatePassword(password: any): ValidationResult {
     };
   }
 
-  // Check maximum length
+  // Maximallänge prüfen
   if (password.length > 255) {
     return {
       valid: false,
@@ -139,14 +139,14 @@ export function validatePassword(password: any): ValidationResult {
 }
 
 /**
- * Validates login request
+ * Validiert die Login-Anfrage
  */
 export function validateLoginRequest(body: any): {
   valid: boolean;
   error?: string;
   data?: LoginRequest;
 } {
-  // Check if body exists
+  // Prüfen, ob ein Body vorhanden ist
   if (!body || typeof body !== 'object') {
     return {
       valid: false,
@@ -154,7 +154,7 @@ export function validateLoginRequest(body: any): {
     };
   }
 
-  // Validate username
+  // Benutzernamen validieren
   const usernameValidation = validateUsername(body.username);
   if (!usernameValidation.valid) {
     return {
@@ -163,7 +163,7 @@ export function validateLoginRequest(body: any): {
     };
   }
 
-  // Validate password
+  // Passwort validieren
   const passwordValidation = validatePassword(body.password);
   if (!passwordValidation.valid) {
     return {
@@ -182,10 +182,10 @@ export function validateLoginRequest(body: any): {
 }
 
 /**
- * Validates token string
+ * Validiert den Token-String
  */
 export function validateToken(token: any): ValidationResult {
-  // Check if token exists
+  // Prüfen, ob ein Token vorhanden ist
   if (!token) {
     return {
       valid: false,
@@ -193,7 +193,7 @@ export function validateToken(token: any): ValidationResult {
     };
   }
 
-  // Check if token is a string
+  // Prüfen, ob der Token ein String ist
   if (typeof token !== 'string') {
     return {
       valid: false,
@@ -201,10 +201,10 @@ export function validateToken(token: any): ValidationResult {
     };
   }
 
-  // Trim whitespace
+  // Leerzeichen trimmen
   const sanitized = token.trim();
 
-  // Check if token is empty after trimming
+  // Prüfen, ob der Token nach dem Trimmen leer ist
   if (sanitized.length === 0) {
     return {
       valid: false,
@@ -212,7 +212,7 @@ export function validateToken(token: any): ValidationResult {
     };
   }
 
-  // Check if token looks like base64 (basic check)
+  // Prüfen, ob der Token wie Base64 aussieht (Basisprüfung)
   const base64Regex = /^[A-Za-z0-9+/]+=*$/;
   if (!base64Regex.test(sanitized)) {
     return {
@@ -228,7 +228,7 @@ export function validateToken(token: any): ValidationResult {
 }
 
 /**
- * Sanitizes error messages to prevent information leakage
+ * Bereinigt Fehlermeldungen, um Informationsabfluss zu verhindern
  */
 export function sanitizeErrorMessage(error: any): string {
   if (!error) {
@@ -237,7 +237,7 @@ export function sanitizeErrorMessage(error: any): string {
 
   const errorMessage = error instanceof Error ? error.message : String(error);
 
-  // List of patterns to sanitize
+  // Liste zu bereinigender Muster
   const sensitivePatterns = [
     /password/gi,
     /secret/gi,
@@ -250,15 +250,15 @@ export function sanitizeErrorMessage(error: any): string {
 
   let sanitized = errorMessage;
 
-  // Check if message contains sensitive information
+  // Prüfen, ob die Meldung sensible Informationen enthält
   for (const pattern of sensitivePatterns) {
     if (pattern.test(sanitized)) {
-      // Return generic error for sensitive information
+      // Generische Fehlermeldung für sensible Informationen zurückgeben
       return 'Authentication failed. Please check your credentials.';
     }
   }
 
-  // Limit length
+  // Länge begrenzen
   if (sanitized.length > 200) {
     sanitized = sanitized.substring(0, 200) + '...';
   }

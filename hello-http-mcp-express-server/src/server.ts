@@ -1,47 +1,37 @@
 import express from "express";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import authRouter from './routes/authRouter.js'
+import Database from './services/clientIDcopy.js';
 
-const app = express();
-app.use(express.json());
+// dotenv.config();
 
-const server = new McpServer({
-  name: "Hello-World-Tool-Server",
-  version: "1.0.0",
-});
+// const app = express();
 
-server.tool(
-  "helloWorld",
-  {}, 
-  async () => ({
-    content: [{ type: "text", text: "holaMundo" }]
-  })
-);
+// app.use(express.json());
 
-const transport = new StreamableHTTPServerTransport({
-  sessionIdGenerator: undefined, 
-});
+// app.use(express.urlencoded({ extended: true }));
 
-app.post("/mcp", async (req, res) => {
-  try {
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await server.connect(transport);
+// const ClientID = process.env.ClientID;
 
-    await transport.handleRequest(req, res, req.body);
-  } catch (error) {
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: "2.0",
-        error: { code: -32603, message: "Internal server error" },
-        id: null,
-      });
-    }
-  }
-});
+// app.use('/',authRouter)
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
-});
+// app.get("/blabla", (req: any, res: any) => {
+// const param = req.query['ClientID'];
+// if (param !== ClientID) {
+//     return res.status(400).send("Invalid ClientID");
+//   }
+// return res.status(200).send("Login successful");
+// });
+
+// const PORT = process.env.PORT || 3000;
+
+// app.listen(PORT, () => {
+//   console.log(`MCP HTTP server läuft auf http://localhost:${PORT}/mcp`);
+// });
+
+const dbInstance = new Database();
+
+const result = await dbInstance.queryClientID(1);
+
+console.log("Client ID:", result);

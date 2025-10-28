@@ -1,12 +1,12 @@
-// MCP Protocol Types for HTTP Transport
+// MCP-Protokolltypen für HTTP-Transport
 
 /**
- * MCP Protocol Version
+ * MCP-Protokollversion
  */
 export const MCP_PROTOCOL_VERSION = '2024-11-05';
 
 /**
- * MCP Request Types
+ * MCP-Anfragetypen
  */
 export enum MCPRequestType {
   INITIALIZE = 'initialize',
@@ -16,7 +16,7 @@ export enum MCPRequestType {
 }
 
 /**
- * Base MCP Request
+ * Basis-MCP-Anfrage
  */
 export interface MCPRequest {
   jsonrpc: '2.0';
@@ -26,7 +26,7 @@ export interface MCPRequest {
 }
 
 /**
- * Base MCP Response
+ * Basis-MCP-Antwort
  */
 export interface MCPResponse {
   jsonrpc: '2.0';
@@ -36,7 +36,7 @@ export interface MCPResponse {
 }
 
 /**
- * MCP Error Object
+ * MCP-Fehlerobjekt
  */
 export interface MCPError {
   code: number;
@@ -45,7 +45,7 @@ export interface MCPError {
 }
 
 /**
- * MCP Error Codes
+ * MCP-Fehlercodes
  */
 export enum MCPErrorCode {
   PARSE_ERROR = -32700,
@@ -57,7 +57,7 @@ export enum MCPErrorCode {
 }
 
 /**
- * MCP Initialize Request
+ * MCP-Initialize-Anfrage
  */
 export interface MCPInitializeRequest extends MCPRequest {
   method: 'initialize';
@@ -74,7 +74,7 @@ export interface MCPInitializeRequest extends MCPRequest {
 }
 
 /**
- * MCP Initialize Response
+ * MCP-Initialize-Antwort
  */
 export interface MCPInitializeResponse extends MCPResponse {
   result: {
@@ -92,7 +92,7 @@ export interface MCPInitializeResponse extends MCPResponse {
 }
 
 /**
- * MCP Tools List Request
+ * MCP-Tools-List-Anfrage
  */
 export interface MCPToolsListRequest extends MCPRequest {
   method: 'tools/list';
@@ -100,7 +100,7 @@ export interface MCPToolsListRequest extends MCPRequest {
 }
 
 /**
- * MCP Tools List Response
+ * MCP-Tools-List-Antwort
  */
 export interface MCPToolsListResponse extends MCPResponse {
   result: {
@@ -117,7 +117,7 @@ export interface MCPToolsListResponse extends MCPResponse {
 }
 
 /**
- * MCP Tools Call Request
+ * MCP-Tools-Call-Anfrage
  */
 export interface MCPToolsCallRequest extends MCPRequest {
   method: 'tools/call';
@@ -128,7 +128,7 @@ export interface MCPToolsCallRequest extends MCPRequest {
 }
 
 /**
- * MCP Tools Call Response
+ * MCP-Tools-Call-Antwort
  */
 export interface MCPToolsCallResponse extends MCPResponse {
   result: {
@@ -143,11 +143,10 @@ export interface MCPToolsCallResponse extends MCPResponse {
 }
 
 /**
- * Server Capabilities
+ * Serverfähigkeiten
  */
 export interface ServerCapabilities {
   tools?: {
     listChanged?: boolean;
   };
 }
-

@@ -1,6 +1,6 @@
-// MCP Server Implementation for HTTP Transport
+// MCP-Server-Implementierung für HTTP-Transport
 
-import { Request, Response, Router } from 'express';
+import { Request, Response, Router } from "express";
 import {
   MCP_PROTOCOL_VERSION,
   MCPRequest,
@@ -12,30 +12,30 @@ import {
   MCPToolsListRequest,
   MCPToolsListResponse,
   MCPToolsCallRequest,
-  MCPToolsCallResponse
-} from './protocol.js';
-import { getAvailableTools, executeTool } from './tools.js';
+  MCPToolsCallResponse,
+} from "./protocol.js";
+import { getAvailableTools, executeTool } from "./tools.js";
 
 /**
- * Server Information
+ * Serverinformationen
  */
 const SERVER_INFO = {
-  name: 'vtj-auth-server',
-  version: '1.0.0',
-  description: 'VTJ API Authentication and Data Access'
+  name: "vtj-auth-server",
+  version: "1.0.0",
+  description: "VTJ API Authentication and Data Access",
 };
 
 /**
- * Server Capabilities
+ * Serverfähigkeiten
  */
 const SERVER_CAPABILITIES = {
   tools: {
-    listChanged: false
-  }
+    listChanged: false,
+  },
 };
 
 /**
- * MCP Server Class
+ * MCP-Server-Klasse
  */
 export class MCPServer {
   constructor() {
@@ -43,18 +43,21 @@ export class MCPServer {
   }
 
   /**
-   * Creates a standard MCP response
+   * Erstellt eine standardisierte MCP-Antwort
    */
-  private createResponse(id: string | number | undefined, result: any): MCPResponse {
+  private createResponse(
+    id: string | number | undefined,
+    result: any
+  ): MCPResponse {
     return {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
-      result
+      result,
     };
   }
 
   /**
-   * Creates a standard MCP error response
+   * Erstellt eine standardisierte MCP-Fehlerantwort
    */
   private createErrorResponse(
     id: string | number | undefined,
@@ -65,29 +68,29 @@ export class MCPServer {
     const error: MCPError = {
       code,
       message,
-      data
+      data,
     };
 
     return {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
-      error
+      error,
     };
   }
 
   /**
-   * Validates MCP request format
+   * Validiert das MCP-Anfrageformat
    */
   private validateRequest(request: any): boolean {
-    if (!request || typeof request !== 'object') {
+    if (!request || typeof request !== "object") {
       return false;
     }
 
-    if (request.jsonrpc !== '2.0') {
+    if (request.jsonrpc !== "2.0") {
       return false;
     }
 
-    if (typeof request.method !== 'string') {
+    if (typeof request.method !== "string") {
       return false;
     }
 
@@ -95,35 +98,43 @@ export class MCPServer {
   }
 
   /**
-   * Handles MCP Initialize request
+   * Behandelt MCP-Initialize-Anfragen
    */
-  async handleInitialize(request: MCPInitializeRequest, _token?: string): Promise<MCPInitializeResponse> {
-    console.log(`[MCP Server] Client initialized: ${request.params.clientInfo.name} v${request.params.clientInfo.version}`);
+  async handleInitialize(
+    request: MCPInitializeRequest,
+    _token?: string
+  ): Promise<MCPInitializeResponse> {
+    console.log(
+      `[MCP Server] Client initialized: ${request.params.clientInfo.name} v${request.params.clientInfo.version}`
+    );
 
     return this.createResponse(request.id, {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: SERVER_CAPABILITIES,
-      serverInfo: SERVER_INFO
+      serverInfo: SERVER_INFO,
     }) as MCPInitializeResponse;
   }
 
   /**
-   * Handles MCP Tools List request
+   * Behandelt MCP-Tools-List-Anfragen
    */
-  async handleToolsList(request: MCPToolsListRequest): Promise<MCPToolsListResponse> {
+  async handleToolsList(
+    request: MCPToolsListRequest
+  ): Promise<MCPToolsListResponse> {
     const tools = getAvailableTools();
 
-    console.log(`[MCP Server] Tools list requested (${tools.length} tools available)`);
-
     return this.createResponse(request.id, {
-      tools
+      tools,
     }) as MCPToolsListResponse;
   }
 
   /**
-   * Handles MCP Tools Call request
+   * Behandelt MCP-Tools-Call-Anfragen
    */
-  async handleToolsCall(request: MCPToolsCallRequest, token?: string): Promise<MCPToolsCallResponse> {
+  async handleToolsCall(
+    request: MCPToolsCallRequest,
+    token?: string
+  ): Promise<MCPToolsCallResponse> {
     const { name, arguments: args } = request.params;
 
     console.log(`[MCP Server] Tool called: ${name}`);
@@ -136,73 +147,89 @@ export class MCPServer {
       // Claude Desktop sends token in arguments, VS Code sends it in Authorization header
       if (token && !toolArgs.token) {
         toolArgs.token = token;
-        console.log('[MCP Server] Token auto-injected from Authorization header');
+        console.log(
+          "[MCP Server] Token auto-injected from Authorization header"
+        );
       }
 
       // Execute tool
       const result = await executeTool(name, toolArgs);
 
       // Check if result is an error
-      const isError = 'error' in result;
+      const isError = "error" in result;
 
       // Format result as MCP content
       const content = [
         {
-          type: 'text' as const,
-          text: JSON.stringify(result, null, 2)
-        }
+          type: "text" as const,
+          text: JSON.stringify(result, null, 2),
+        },
       ];
 
       return this.createResponse(request.id, {
         content,
-        isError
+        isError,
       }) as MCPToolsCallResponse;
     } catch (error) {
       // Tool execution error
       console.error(`[MCP Server] Tool execution error:`, error);
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       const content = [
         {
-          type: 'text' as const,
-          text: JSON.stringify({
-            error: 'tool_execution_failed',
-            message: `Failed to execute tool '${name}': ${errorMessage}`
-          }, null, 2)
-        }
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              error: "tool_execution_failed",
+              message: `Failed to execute tool '${name}': ${errorMessage}`,
+            },
+            null,
+            2
+          ),
+        },
       ];
 
       return this.createResponse(request.id, {
         content,
-        isError: true
+        isError: true,
       }) as MCPToolsCallResponse;
     }
   }
 
   /**
-   * Handles MCP request routing
+   * Steuert die Weiterleitung von MCP-Anfragen
    */
-  async handleRequest(request: MCPRequest, token?: string): Promise<MCPResponse> {
+  async handleRequest(
+    request: MCPRequest,
+    token?: string
+  ): Promise<MCPResponse> {
     // Validate request format
     if (!this.validateRequest(request)) {
       return this.createErrorResponse(
         request.id,
         MCPErrorCode.INVALID_REQUEST,
-        'Invalid MCP request format'
+        "Invalid MCP request format"
       );
     }
 
     try {
-      // Route to appropriate handler
+      // An passenden Handler weiterleiten
       switch (request.method) {
-        case 'initialize':
-          return await this.handleInitialize(request as MCPInitializeRequest, token);
+        case "initialize":
+          return await this.handleInitialize(
+            request as MCPInitializeRequest,
+            token
+          );
 
-        case 'tools/list':
+        case "tools/list":
           return await this.handleToolsList(request as MCPToolsListRequest);
 
-        case 'tools/call':
-          return await this.handleToolsCall(request as MCPToolsCallRequest, token);
+        case "tools/call":
+          return await this.handleToolsCall(
+            request as MCPToolsCallRequest,
+            token
+          );
 
         default:
           return this.createErrorResponse(
@@ -212,30 +239,32 @@ export class MCPServer {
           );
       }
     } catch (error) {
-      console.error('[MCP Server] Request handling error:', error);
+      console.error("[MCP Server] Request handling error:", error);
 
       return this.createErrorResponse(
         request.id,
         MCPErrorCode.INTERNAL_ERROR,
-        `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Internal server error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
   }
 
   /**
-   * Gets server capabilities
+   * Liefert Serverfähigkeiten
    */
   getCapabilities() {
     return {
       protocolVersion: MCP_PROTOCOL_VERSION,
       serverInfo: SERVER_INFO,
       capabilities: SERVER_CAPABILITIES,
-      tools: getAvailableTools() // Include available tools
+      tools: getAvailableTools(), // Verfügbare Tools einschließen
     };
   }
 
   /**
-   * Gets server info
+   * Liefert Serverinformationen
    */
   getServerInfo() {
     return SERVER_INFO;
@@ -243,55 +272,59 @@ export class MCPServer {
 }
 
 /**
- * Creates Express router for MCP endpoints
+ * Erstellt einen Express-Router für MCP-Endpunkte
  */
 export function createMCPRouter(): Router {
   const router = Router();
   const mcpServer = new MCPServer();
 
-  // Middleware to log all MCP requests
+  // Middleware zum Protokollieren aller MCP-Anfragen
   router.use((req: Request, _res: Response, next) => {
     console.log(`[MCP HTTP] ${req.method} ${req.path}`);
     next();
   });
 
   /**
-   * GET /mcp - MCP server information (for VS Code compatibility)
+   * GET /mcp – MCP-Serverinformationen (für VS Code-Kompatibilität)
    */
-  router.get('/', (_req: Request, res: Response) => {
+  router.get("/", (_req: Request, res: Response) => {
     res.json(mcpServer.getCapabilities());
   });
 
   /**
-   * POST /mcp - Main MCP endpoint (handles all MCP requests)
+   * POST /mcp – Haupt-MCP-Endpunkt (behandelt alle MCP-Anfragen)
    */
-  router.post('/', async (req: Request, res: Response) => {
+  router.post("/", async (req: Request, res: Response) => {
     try {
       const mcpRequest = req.body as MCPRequest;
 
-      // Extract token from Authorization header if present (for VS Code Copilot)
+      // Token aus Authorization-Header extrahieren, falls vorhanden (für VS Code Copilot)
       const authHeader = req.headers.authorization;
       let extractedToken: string | undefined;
 
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        extractedToken = authHeader.substring(7); // Remove 'Bearer ' prefix
-        console.log('[MCP HTTP] Token extracted from Authorization header');
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        extractedToken = authHeader.substring(7); // 'Bearer '-Präfix entfernen
+        console.log("[MCP HTTP] Token extracted from Authorization header");
       }
 
-      // Pass extracted token to the handler
-      const mcpResponse = await mcpServer.handleRequest(mcpRequest, extractedToken);
+      // Extrahiertes Token an den Handler übergeben
+      const mcpResponse = await mcpServer.handleRequest(
+        mcpRequest,
+        extractedToken
+      );
 
       res.json(mcpResponse);
     } catch (error) {
-      console.error('[MCP HTTP] Request error:', error);
+      console.error("[MCP HTTP] Request error:", error);
 
       const errorResponse: MCPResponse = {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: (req.body as any)?.id,
         error: {
           code: MCPErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Internal server error'
-        }
+          message:
+            error instanceof Error ? error.message : "Internal server error",
+        },
       };
 
       res.status(500).json(errorResponse);
@@ -299,98 +332,101 @@ export function createMCPRouter(): Router {
   });
 
   /**
-   * POST /mcp/initialize - Initialize client connection
+   * POST /mcp/initialize – Clientverbindung initialisieren
    */
-  router.post('/initialize', async (req: Request, res: Response) => {
+  router.post("/initialize", async (req: Request, res: Response) => {
     try {
       const initRequest: MCPInitializeRequest = {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: req.body.id || Date.now(),
-        method: 'initialize',
-        params: req.body.params || req.body
+        method: "initialize",
+        params: req.body.params || req.body,
       };
 
       const response = await mcpServer.handleRequest(initRequest);
       res.json(response);
     } catch (error) {
-      console.error('[MCP HTTP] Initialize error:', error);
+      console.error("[MCP HTTP] Initialize error:", error);
       res.status(500).json({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         error: {
           code: MCPErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Initialization failed'
-        }
+          message:
+            error instanceof Error ? error.message : "Initialization failed",
+        },
       });
     }
   });
 
   /**
-   * POST /mcp/tools/list - Get available tools
+   * POST /mcp/tools/list – Verfügbare Tools abrufen
    */
-  router.post('/tools/list', async (req: Request, res: Response) => {
+  router.post("/tools/list", async (req: Request, res: Response) => {
     try {
       const listRequest: MCPToolsListRequest = {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: req.body.id || Date.now(),
-        method: 'tools/list',
-        params: req.body.params || {}
+        method: "tools/list",
+        params: req.body.params || {},
       };
 
       const response = await mcpServer.handleRequest(listRequest);
       res.json(response);
     } catch (error) {
-      console.error('[MCP HTTP] Tools list error:', error);
+      console.error("[MCP HTTP] Tools list error:", error);
       res.status(500).json({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         error: {
           code: MCPErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Failed to list tools'
-        }
+          message:
+            error instanceof Error ? error.message : "Failed to list tools",
+        },
       });
     }
   });
 
   /**
-   * POST /mcp/tools/call - Execute a tool
+   * POST /mcp/tools/call – Ein Tool ausführen
    */
-  router.post('/tools/call', async (req: Request, res: Response) => {
+  router.post("/tools/call", async (req: Request, res: Response) => {
     try {
       const callRequest: MCPToolsCallRequest = {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id: req.body.id || Date.now(),
-        method: 'tools/call',
-        params: req.body.params || req.body
+        method: "tools/call",
+        params: req.body.params || req.body,
       };
 
       const response = await mcpServer.handleRequest(callRequest);
       res.json(response);
     } catch (error) {
-      console.error('[MCP HTTP] Tools call error:', error);
+      console.error("[MCP HTTP] Tools call error:", error);
       res.status(500).json({
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         error: {
           code: MCPErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Failed to execute tool'
-        }
+          message:
+            error instanceof Error ? error.message : "Failed to execute tool",
+        },
       });
     }
   });
 
   /**
-   * GET /mcp/capabilities - Get server capabilities
+   * GET /mcp/capabilities – Serverfähigkeiten abrufen
    */
-  router.get('/capabilities', (_req: Request, res: Response) => {
+  router.get("/capabilities", (_req: Request, res: Response) => {
     res.json(mcpServer.getCapabilities());
   });
 
   /**
-   * GET /mcp/health - Health check endpoint
+   * GET /mcp/health – Health-Check-Endpunkt
    */
-  router.get('/health', (_req: Request, res: Response) => {
+  router.get("/health", (_req: Request, res: Response) => {
     res.json({
-      status: 'healthy',
+      status: "healthy",
       server: mcpServer.getServerInfo(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -398,6 +434,6 @@ export function createMCPRouter(): Router {
 }
 
 /**
- * Export singleton MCP server instance
+ * Exportiert die Singleton-MCP-Serverinstanz
  */
 export const mcpServer = new MCPServer();

@@ -1,14 +1,14 @@
-// TypeScript Interfaces for MCP Tools
+// TypeScript-Schnittstellen für MCP-Tools
 
 /**
- * Standard MCP tool input with token parameter
+ * Standard-MCP-Tool-Eingabe mit Token-Parameter
  */
 export interface MCPToolInput {
   token: string;
 }
 
 /**
- * MCP Tool schema definition for HTTP transport
+ * MCP-Tool-Schemadefinition für den HTTP-Transport
  */
 export interface MCPToolSchema {
   name: string;
@@ -21,7 +21,7 @@ export interface MCPToolSchema {
 }
 
 /**
- * Authentication tool response
+ * Antwort des Authentifizierungs-Tools
  */
 export interface AuthenticateResponse {
   success: boolean;
@@ -34,7 +34,7 @@ export interface AuthenticateResponse {
 }
 
 /**
- * Get depot tool response
+ * Antwort des Get-Depot-Tools
  */
 export interface GetDepotResponse {
   success: boolean;
@@ -43,7 +43,7 @@ export interface GetDepotResponse {
 }
 
 /**
- * Get session status tool response
+ * Antwort des Get-Session-Status-Tools
  */
 export interface GetSessionStatusResponse {
   success: boolean;
@@ -55,7 +55,7 @@ export interface GetSessionStatusResponse {
 }
 
 /**
- * Error response for MCP tools
+ * Fehlerantwort für MCP-Tools
  */
 export interface MCPErrorResponse {
   error: string;
@@ -65,7 +65,7 @@ export interface MCPErrorResponse {
 }
 
 /**
- * MCP Tool execution result
+ * MCP-Tool-Ausführungsergebnis
  */
 export type MCPToolResult =
   | AuthenticateResponse

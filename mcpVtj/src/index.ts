@@ -1,54 +1,45 @@
-// Application Entry Point for VTJ MCP Server
+// Anwendungseinstiegspunkt für den VTJ-MCP-Server
 
-import dotenv from 'dotenv';
-import http from 'http';
-import {
-  createApp,
-  getServerConfig,
-  validateEnvironment,
-  printStartupInfo
-} from './server.js';
+import dotenv from "dotenv";
+import http from "http";
+import { createApp, getServerConfig, validateEnvironment } from "./server.js";
 
-// Load environment variables from .env file
+// Umgebungsvariablen aus der Datei .env laden
 dotenv.config();
 
 /**
- * Global server instance for graceful shutdown
+ * Globale Serverinstanz für das saubere Herunterfahren
  */
 let server: http.Server | null = null;
 
 /**
- * Starts the HTTP server
+ * Startet den HTTP-Server
  */
 async function startServer(): Promise<void> {
   try {
-    console.log('[Startup] Initializing VTJ MCP Server...');
 
-    // Validate environment variables
-    console.log('[Startup] Validating environment configuration...');
+    // Umgebungsvariablen validieren
     validateEnvironment();
 
-    // Get server configuration
+    // Serverkonfiguration abrufen
     const config = getServerConfig();
 
-    // Create Express application
-    console.log('[Startup] Creating Express application...');
+    // Express-Anwendung erstellen
     const app = createApp();
 
-    // Create HTTP server
-    console.log('[Startup] Creating HTTP server...');
+    // HTTP-Server erstellen
     server = http.createServer(app);
 
-    // Start listening
+    // Server starten (Port binden)
     await new Promise<void>((resolve, reject) => {
       if (!server) {
-        return reject(new Error('Server instance not created'));
+        return reject(new Error("Server instance not created"));
       }
 
-      server.on('error', (error: NodeJS.ErrnoException) => {
-        if (error.code === 'EADDRINUSE') {
+      server.on("error", (error: NodeJS.ErrnoException) => {
+        if (error.code === "EADDRINUSE") {
           reject(new Error(`Port ${config.port} is already in use`));
-        } else if (error.code === 'EACCES') {
+        } else if (error.code === "EACCES") {
           reject(new Error(`Permission denied to bind to port ${config.port}`));
         } else {
           reject(error);
@@ -56,22 +47,21 @@ async function startServer(): Promise<void> {
       });
 
       server.listen(config.port, () => {
-        console.log('[Startup] Server started successfully');
-        printStartupInfo(config);
+        // Einzige Konsolenausgabe zum Start
+        console.log(`Server gestartet: ${config.serverUrl}`);
         resolve();
       });
     });
 
-    // Setup graceful shutdown handlers
+    // Handler für sauberes Herunterfahren einrichten
     setupGracefulShutdown();
-
   } catch (error) {
-    console.error('[Startup] Failed to start server:', error);
+    console.error("[Startup] Failed to start server:", error);
 
     if (error instanceof Error) {
-      console.error('[Startup] Error message:', error.message);
+      console.error("[Startup] Error message:", error.message);
       if (error.stack) {
-        console.error('[Startup] Stack trace:', error.stack);
+        console.error("[Startup] Stack trace:", error.stack);
       }
     }
 
@@ -80,26 +70,22 @@ async function startServer(): Promise<void> {
 }
 
 /**
- * Gracefully shuts down the server
+ * Fährt den Server kontrolliert herunter
  */
 async function shutdown(signal: string): Promise<void> {
-  console.log(`\n[Shutdown] Received ${signal} signal`);
-  console.log('[Shutdown] Starting graceful shutdown...');
-
-  // Prevent multiple shutdown calls
+  // Mehrfache Shutdown-Aufrufe verhindern
   if (!server) {
-    console.log('[Shutdown] Server already stopped');
     process.exit(0);
     return;
   }
 
   const shutdownTimeout = setTimeout(() => {
-    console.error('[Shutdown] Forced shutdown after timeout');
+    console.error("[Shutdown] Forced shutdown after timeout");
     process.exit(1);
-  }, 10000); // 10 second timeout
+  }, 10000); // 10 Sekunden Timeout
 
   try {
-    // Stop accepting new connections
+    // Keine neuen Verbindungen mehr annehmen
     await new Promise<void>((resolve, reject) => {
       if (!server) {
         return resolve();
@@ -107,81 +93,67 @@ async function shutdown(signal: string): Promise<void> {
 
       server.close((err) => {
         if (err) {
-          console.error('[Shutdown] Error closing server:', err);
+          console.error("[Shutdown] Error closing server:", err);
           reject(err);
         } else {
-          console.log('[Shutdown] Server closed successfully');
+          console.log("[Shutdown] Server closed successfully");
           resolve();
         }
       });
     });
 
-    // Clear shutdown timeout
+    // Shutdown-Timeout aufräumen
     clearTimeout(shutdownTimeout);
-
-    console.log('[Shutdown] Cleanup completed');
-    console.log('[Shutdown] Goodbye! 👋\n');
 
     process.exit(0);
   } catch (error) {
-    console.error('[Shutdown] Error during shutdown:', error);
+    console.error("[Shutdown] Error during shutdown:", error);
     clearTimeout(shutdownTimeout);
     process.exit(1);
   }
 }
 
 /**
- * Sets up signal handlers for graceful shutdown
+ * Richtet Signal-Handler für ein sauberes Herunterfahren ein
  */
 function setupGracefulShutdown(): void {
-  // Handle SIGTERM (Kubernetes, Docker, etc.)
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  // SIGTERM behandeln (Kubernetes, Docker, etc.)
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  // Handle SIGINT (Ctrl+C)
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  // SIGINT behandeln (Strg+C)
+  process.on("SIGINT", () => shutdown("SIGINT"));
 
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (error: Error) => {
-    console.error('[Error] Uncaught Exception:', error);
-    console.error('[Error] Stack:', error.stack);
+  // Unbehandelte Ausnahmen behandeln
+  process.on("uncaughtException", (error: Error) => {
+    console.error("[Error] Uncaught Exception:", error);
+    console.error("[Error] Stack:", error.stack);
 
-    // Try to shutdown gracefully
-    shutdown('UNCAUGHT_EXCEPTION').catch(() => {
+    // Versuch, kontrolliert herunterzufahren
+    shutdown("UNCAUGHT_EXCEPTION").catch(() => {
       process.exit(1);
     });
   });
 
-  // Handle unhandled promise rejections
-  process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-    console.error('[Error] Unhandled Promise Rejection:', reason);
-    console.error('[Error] Promise:', promise);
+  // Unbehandelte Promise-Ablehnungen behandeln
+  process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+    console.error("[Error] Unhandled Promise Rejection:", reason);
+    console.error("[Error] Promise:", promise);
 
-    // Try to shutdown gracefully
-    shutdown('UNHANDLED_REJECTION').catch(() => {
+    // Versuch, kontrolliert herunterzufahren
+    shutdown("UNHANDLED_REJECTION").catch(() => {
       process.exit(1);
     });
   });
 
-  console.log('[Server] Graceful shutdown handlers registered');
+  // Graceful-Shutdown-Handler registriert
 }
 
-/**
- * Main function - Entry point
- */
 async function main(): Promise<void> {
-  console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║                                                            ║');
-  console.log('║         VTJ MCP Authentication Server v1.0.0               ║');
-  console.log('║         HTTP-based Model Context Protocol Server          ║');
-  console.log('║                                                            ║');
-  console.log('╚════════════════════════════════════════════════════════════╝');
-  console.log('');
-
   await startServer();
 }
 
-// Start the application
+// Anwendung starten
 main().catch((error) => {
-  console.error('[Fatal] Application startup failed:', error);
+  console.error("[Fatal] Application startup failed:", error);
   process.exit(1);
 });

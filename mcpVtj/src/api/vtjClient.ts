@@ -1,14 +1,14 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { VTJLoginResponse } from '../auth/types.js';
 
-// VTJ API Base URL from environment
+// VTJ-API-Basis-URL aus der Umgebung
 const VTJ_API_BASE_URL = process.env.VTJ_API_BASE_URL || 'https://api-beta.visualtradingjournal.com';
 
-// Timeout configuration (30 seconds)
+
 const API_TIMEOUT = 30000;
 
 /**
- * Creates an Axios instance for VTJ API calls
+ * Erstellt eine Axios-Instanz für VTJ-API-Aufrufe
  */
 const createVTJClient = (): AxiosInstance => {
   return axios.create({
@@ -22,23 +22,23 @@ const createVTJClient = (): AxiosInstance => {
 };
 
 /**
- * Handles API errors and converts them to readable error messages
+ * Behandelt API-Fehler und wandelt sie in verständliche Fehlermeldungen um
  */
 function handleAPIError(error: unknown): never {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError;
 
     if (axiosError.response) {
-      // Server responded with error status
+      // Server hat mit Fehlerstatus geantwortet
       const status = axiosError.response.status;
       const data = axiosError.response.data;
 
       throw new Error(`VTJ API Error (${status}): ${JSON.stringify(data)}`);
     } else if (axiosError.request) {
-      // Request was made but no response received
+      // Anfrage gesendet, aber keine Antwort erhalten
       throw new Error('VTJ API Error: No response from server. Check your network connection.');
     } else {
-      // Error in request setup
+      // Fehler bei der Anfragevorbereitung
       throw new Error(`VTJ API Error: ${axiosError.message}`);
     }
   }
@@ -47,10 +47,10 @@ function handleAPIError(error: unknown): never {
 }
 
 /**
- * Logs in to VTJ API and retrieves session information
- * @param username - VTJ username/email
- * @param password - VTJ password
- * @returns Login response with session and depot information
+ * Meldet sich bei der VTJ-API an und ruft Sitzungsinformationen ab
+ * @param username - VTJ-Benutzername/E-Mail
+ * @param password - VTJ-Passwort
+ * @returns Login-Antwort mit Sitzungs- und Depotinformationen
  */
 export async function login(username: string, password: string): Promise<VTJLoginResponse> {
   const client = createVTJClient();
@@ -65,24 +65,24 @@ export async function login(username: string, password: string): Promise<VTJLogi
 
     const responseData = response.data;
 
-    // Extract session ID from response
+    // Sitzungs-ID aus der Antwort extrahieren
     if (!responseData.session) {
       throw new Error('Login response missing session ID');
     }
 
-    // Extract user data
+    // Benutzerdaten extrahieren
     if (!responseData.user) {
       throw new Error('Login response missing user information');
     }
 
     const userData = responseData.user;
 
-    // Extract depots from user object
+    // Depots aus dem Benutzerobjekt extrahieren
     if (!userData.depots || !Array.isArray(userData.depots) || userData.depots.length === 0) {
       throw new Error('Login response missing depots information');
     }
 
-    // Get first depot ID (VTJ uses _id field)
+    // Erste Depot-ID ermitteln (VTJ verwendet das Feld _id)
     const firstDepot = userData.depots[0];
     const depotId = firstDepot._id;
 
@@ -103,10 +103,10 @@ export async function login(username: string, password: string): Promise<VTJLogi
 }
 
 /**
- * Retrieves depot data from VTJ API
- * @param sessionId - VTJ session ID
- * @param depotId - Depot ID to retrieve
- * @returns Depot data object
+ * Ruft Depotdaten von der VTJ-API ab
+ * @param sessionId - VTJ-Sitzungs-ID
+ * @param depotId - Abzurufende Depot-ID
+ * @returns Depotdaten-Objekt
  */
 export async function getDepotData(sessionId: string, depotId: string): Promise<any> {
   const client = createVTJClient();

@@ -2,28 +2,28 @@ import crypto from 'crypto';
 import { TokenPayload, TokenPayloadSchema, SessionDataSchema } from './types.js';
 import { z } from 'zod';
 
-// AES-256-GCM Encryption Configuration
+// AES-256-GCM Verschlüsselungskonfiguration
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 const SALT_LENGTH = 64;
 const TAG_LENGTH = 16;
 const KEY_LENGTH = 32;
 
-// Token validity duration (24 hours in milliseconds, configurable)
-const TOKEN_VALIDITY_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+// Gültigkeitsdauer des Tokens (24 Stunden in Millisekunden, konfigurierbar)
+const TOKEN_VALIDITY_DURATION = 24 * 60 * 60 * 1000; // 24 Stunden
 
 /**
- * Derives encryption key from secret using PBKDF2
+ * Leitet den Verschlüsselungsschlüssel mittels PBKDF2 aus dem Secret ab
  */
 function deriveKey(secret: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(secret, salt, 100000, KEY_LENGTH, 'sha256');
 }
 
 /**
- * Encrypts a token payload using AES-256-GCM
- * @param payload - Token payload to encrypt
- * @returns Encrypted token as base64 string
- * @throws {Error} If payload validation fails or encryption fails
+ * Verschlüsselt einen Token-Payload mit AES-256-GCM
+ * @param payload - Zu verschlüsselnder Token-Payload
+ * @returns Verschlüsseltes Token als Base64-String
+ * @throws {Error} Wenn die Payload-Validierung oder die Verschlüsselung fehlschlägt
  */
 export function encryptToken(payload: TokenPayload): string {
   const secret = process.env.ENCRYPTION_SECRET;
@@ -33,28 +33,28 @@ export function encryptToken(payload: TokenPayload): string {
   }
 
   try {
-    // Validate payload using Zod schema (prevents JSON injection)
+    // Payload mit Zod-Schema validieren (verhindert JSON-Injektion)
     const validatedPayload = TokenPayloadSchema.parse(payload);
 
-    // Generate random salt and IV
+    // Zufälliges Salt und IV erzeugen
     const salt = crypto.randomBytes(SALT_LENGTH);
     const iv = crypto.randomBytes(IV_LENGTH);
 
-    // Derive encryption key
+    // Schlüssel ableiten
     const key = deriveKey(secret, salt);
 
-    // Create cipher
+    // Cipher erzeugen
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
-    // Encrypt validated payload
+    // Validierten Payload verschlüsseln
     const payloadString = JSON.stringify(validatedPayload);
     let encrypted = cipher.update(payloadString, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
-    // Get authentication tag
+    // Authentifizierungs-Tag ermitteln
     const authTag = cipher.getAuthTag();
 
-    // Combine salt + iv + authTag + encrypted data
+    // Salt + IV + AuthTag + verschlüsselte Daten kombinieren
     const combined = Buffer.concat([
       salt,
       iv,
@@ -62,10 +62,10 @@ export function encryptToken(payload: TokenPayload): string {
       Buffer.from(encrypted, 'hex')
     ]);
 
-    // Return as base64 string
+    // Als Base64-String zurückgeben
     return combined.toString('base64');
   } catch (error) {
-    // Handle Zod validation errors
+    // Zod-Validierungsfehler behandeln
     if (error instanceof z.ZodError) {
       const validationErrors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       throw new Error(`Token payload validation failed: ${validationErrors}`);
@@ -76,10 +76,10 @@ export function encryptToken(payload: TokenPayload): string {
 }
 
 /**
- * Decrypts an encrypted token string
- * @param encryptedToken - Encrypted token as base64 string
- * @returns Decrypted and validated token payload
- * @throws {Error} If decryption fails or payload validation fails
+ * Entschlüsselt einen verschlüsselten Token-String
+ * @param encryptedToken - Verschlüsseltes Token als Base64-String
+ * @returns Entschlüsselter und validierter Token-Payload
+ * @throws {Error} Wenn die Entschlüsselung oder die Payload-Validierung fehlschlägt
  */
 export function decryptToken(encryptedToken: string): TokenPayload {
   const secret = process.env.ENCRYPTION_SECRET;
@@ -89,10 +89,10 @@ export function decryptToken(encryptedToken: string): TokenPayload {
   }
 
   try {
-    // Decode base64 token
+    // Base64-Token dekodieren
     const combined = Buffer.from(encryptedToken, 'base64');
 
-    // Extract components
+    // Komponenten extrahieren
     const salt = combined.subarray(0, SALT_LENGTH);
     const iv = combined.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
     const authTag = combined.subarray(
@@ -101,34 +101,34 @@ export function decryptToken(encryptedToken: string): TokenPayload {
     );
     const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
 
-    // Derive decryption key
+    // Schlüssel zum Entschlüsseln ableiten
     const key = deriveKey(secret, salt);
 
-    // Create decipher
+    // Decipher erzeugen
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
 
-    // Decrypt data
+    // Daten entschlüsseln
     let decrypted = decipher.update(encrypted.toString('hex'), 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 
-    // Parse JSON
+    // JSON parsen
     const parsedPayload = JSON.parse(decrypted);
 
-    // Validate using Zod schema with relaxed validation (allow expired tokens for info retrieval)
-    // Use safeParse to allow expired timestamps during decryption
+    // Mit Zod-Schema validieren (entspannter), abgelaufene Zeitstempel zulassen
+    // safeParse verwenden, um abgelaufene Zeitstempel zuzulassen
     const validationResult = TokenPayloadSchema.safeParse(parsedPayload);
 
     if (!validationResult.success) {
-      // If timestamp is the only issue, try SessionDataSchema which allows expired timestamps
+      // Wenn nur der Zeitstempel problematisch ist, SessionDataSchema versuchen, das abgelaufene Zeitstempel zulässt
       const sessionValidation = SessionDataSchema.safeParse(parsedPayload);
 
       if (sessionValidation.success) {
-        // Valid structure but may be expired - return as-is for expiration check
+        // Gültige Struktur, aber evtl. abgelaufen – für Ablaufprüfung zurückgeben
         return parsedPayload as TokenPayload;
       }
 
-      // Invalid payload structure
+      // Ungültige Payload-Struktur
       const validationErrors = validationResult.error.errors
         .map(e => `${e.path.join('.')}: ${e.message}`)
         .join(', ');
@@ -137,7 +137,7 @@ export function decryptToken(encryptedToken: string): TokenPayload {
 
     return validationResult.data;
   } catch (error) {
-    // Handle Zod validation errors
+    // Zod-Validierungsfehler behandeln
     if (error instanceof z.ZodError) {
       const validationErrors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
       throw new Error(`Token payload validation failed: ${validationErrors}`);
@@ -148,38 +148,38 @@ export function decryptToken(encryptedToken: string): TokenPayload {
 }
 
 /**
- * Validates if a token is still valid (not expired)
- * @param token - Encrypted token string
- * @returns true if token is valid, false otherwise
+ * Prüft, ob ein Token noch gültig ist (nicht abgelaufen)
+ * @param token - Verschlüsselter Token-String
+ * @returns true, wenn das Token gültig ist, sonst false
  */
 export function isTokenValid(token: string): boolean {
   try {
     const payload = decryptToken(token);
 
-    // Check if token has expired
+    // Prüfen, ob das Token abgelaufen ist
     const now = Date.now();
     if (payload.expiresAt <= now) {
       return false;
     }
 
-    // Validate required fields
+    // Erforderliche Felder prüfen
     if (!payload.vtjSessionId || !payload.depotId) {
       return false;
     }
 
     return true;
   } catch (error) {
-    // Token decryption failed or invalid format
+    // Token-Entschlüsselung fehlgeschlagen oder ungültiges Format
     return false;
   }
 }
 
 /**
- * Creates a new token payload with expiration time
- * @param vtjSessionId - VTJ session ID
- * @param depotId - Depot ID
- * @param validityDuration - Token validity duration in milliseconds (default: 24h)
- * @returns Token payload
+ * Erstellt einen neuen Token-Payload mit Ablaufzeit
+ * @param vtjSessionId - VTJ-Sitzungs-ID
+ * @param depotId - Depot-ID
+ * @param validityDuration - Token-Gültigkeitsdauer in Millisekunden (Standard: 24h)
+ * @returns Token-Payload
  */
 export function createTokenPayload(
   vtjSessionId: string,

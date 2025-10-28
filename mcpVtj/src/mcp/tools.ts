@@ -1,4 +1,4 @@
-// MCP Tools Implementation for VTJ API Integration
+// MCP-Tools-Implementierung für die VTJ-API-Integration
 
 import { decryptToken } from '../auth/tokenManager.js';
 import {
@@ -17,11 +17,11 @@ import {
   MCPToolResult
 } from './types.js';
 
-// Server URL from environment (for login links in error responses)
+// Server-URL aus der Umgebung (für Login-Links in Fehlermeldungen)
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:3000';
 
 /**
- * Helper function to format remaining time
+ * Hilfsfunktion zum Formatieren der verbleibenden Zeit
  */
 function formatRemainingTime(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000);
@@ -41,7 +41,7 @@ function formatRemainingTime(milliseconds: number): string {
 }
 
 /**
- * Creates a standardized error response with login instructions
+ * Erstellt eine standardisierte Fehlerantwort mit Login-Anleitung
  */
 function createErrorResponse(
   errorType: string,
@@ -58,14 +58,14 @@ function createErrorResponse(
 }
 
 /**
- * Validates token and returns session data or error
+ * Validiert das Token und gibt Sitzungsdaten oder einen Fehler zurück
  */
 function validateTokenInput(token: string | undefined): {
   valid: boolean;
   sessionData?: any;
   error?: MCPErrorResponse
 } {
-  // Check if token exists
+  // Prüfen, ob ein Token vorhanden ist
   if (!token || typeof token !== 'string' || token.trim() === '') {
     return {
       valid: false,
@@ -77,7 +77,7 @@ function validateTokenInput(token: string | undefined): {
     };
   }
 
-  // Check if token is expired
+  // Prüfen, ob das Token abgelaufen ist
   if (isTokenExpired(token)) {
     return {
       valid: false,
@@ -89,7 +89,7 @@ function validateTokenInput(token: string | undefined): {
     };
   }
 
-  // Validate and extract session data
+  // Sitzungsdaten validieren und extrahieren
   const sessionData = extractSessionData(token);
   if (!sessionData) {
     return {
@@ -108,21 +108,21 @@ function validateTokenInput(token: string | undefined): {
   };
 }
 
-// ==================== MCP TOOL SCHEMAS ====================
+// ==================== MCP-TOOL-SCHEMAS ====================
 
 /**
- * Tool schemas for MCP HTTP transport
+ * Tool-Schemas für den MCP-HTTP-Transport
  */
 export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   {
     name: 'authenticate',
-    description: 'Validates and decrypts authentication token, returning session information. Use this to verify your token is valid before making other API calls.',
+    description: 'Validiert und entschlüsselt das Authentifizierungs-Token und liefert Sitzungsinformationen. Verwenden Sie dies, um Ihr Token vor weiteren API-Aufrufen zu prüfen.',
     inputSchema: {
       type: 'object',
       properties: {
         token: {
           type: 'string',
-          description: 'Encrypted authentication token obtained from the web login interface'
+          description: 'Verschlüsseltes Authentifizierungs-Token aus der Web-Login-Oberfläche'
         }
       },
       required: ['token']
@@ -130,13 +130,13 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   },
   {
     name: 'get_depot',
-    description: 'Retrieves depot account data from VTJ API using your authentication token. Returns detailed information about your trading depot/account.',
+    description: 'Ruft Depotkontodaten über die VTJ-API mit Ihrem Authentifizierungs-Token ab. Liefert detaillierte Informationen zu Ihrem Trading-Depot/Konto.',
     inputSchema: {
       type: 'object',
       properties: {
         token: {
           type: 'string',
-          description: 'Encrypted authentication token obtained from the web login interface'
+          description: 'Verschlüsseltes Authentifizierungs-Token aus der Web-Login-Oberfläche'
         }
       },
       required: ['token']
@@ -144,13 +144,13 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   },
   {
     name: 'get_session_status',
-    description: 'Checks the current status of your authentication token, including validity, expiration time, and depot information.',
+    description: 'Prüft den aktuellen Status Ihres Authentifizierungs-Tokens, inkl. Gültigkeit, Ablaufzeit und Depotinformationen.',
     inputSchema: {
       type: 'object',
       properties: {
         token: {
           type: 'string',
-          description: 'Encrypted authentication token obtained from the web login interface'
+          description: 'Verschlüsseltes Authentifizierungs-Token aus der Web-Login-Oberfläche'
         }
       },
       required: ['token']
@@ -158,11 +158,11 @@ export const MCP_TOOL_SCHEMAS: MCPToolSchema[] = [
   }
 ];
 
-// ==================== MCP TOOL IMPLEMENTATIONS ====================
+// ==================== MCP-TOOL-IMPLEMENTIERUNGEN ====================
 
 /**
- * AUTHENTICATE TOOL
- * Validates and decrypts token, returns session information
+ * AUTHENTICATE-TOOL
+ * Validiert und entschlüsselt das Token, gibt Sitzungsinformationen zurück
  */
 export async function authenticate(input: MCPToolInput): Promise<AuthenticateResponse | MCPErrorResponse> {
   try {
@@ -177,7 +177,7 @@ export async function authenticate(input: MCPToolInput): Promise<AuthenticateRes
 
     return {
       success: true,
-      message: 'Token is valid and authentication successful',
+      message: 'Token ist gültig, Authentifizierung erfolgreich',
       sessionInfo: {
         depotId: sessionData.depotId,
         expiresAt: sessionData.expiresAt,
@@ -193,8 +193,8 @@ export async function authenticate(input: MCPToolInput): Promise<AuthenticateRes
 }
 
 /**
- * GET_DEPOT TOOL
- * Retrieves depot data from VTJ API
+ * GET_DEPOT-TOOL
+ * Ruft Depotdaten über die VTJ-API ab
  */
 export async function getDepot(input: MCPToolInput): Promise<GetDepotResponse | MCPErrorResponse> {
   try {
@@ -207,7 +207,7 @@ export async function getDepot(input: MCPToolInput): Promise<GetDepotResponse | 
     const sessionData = validation.sessionData!;
     const { vtjSessionId, depotId } = sessionData;
 
-    // Call VTJ API to get depot data
+    // VTJ-API aufrufen, um Depotdaten zu erhalten
     try {
       const depotData = await getDepotData(vtjSessionId, depotId);
 
@@ -217,13 +217,13 @@ export async function getDepot(input: MCPToolInput): Promise<GetDepotResponse | 
         data: depotData
       };
     } catch (apiError) {
-      // Handle VTJ API errors
+      // VTJ-API-Fehler behandeln
       const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown API error';
 
       return createErrorResponse(
         'vtj_api_error',
-        `Failed to retrieve depot data from VTJ API: ${errorMessage}`,
-        'The VTJ API returned an error. This could mean:\n1. Your VTJ session has expired on the server\n2. The depot ID is invalid\n3. The VTJ API is temporarily unavailable\n\nPlease try getting a new token from the login URL below.'
+        `Abruf der Depotdaten von der VTJ-API fehlgeschlagen: ${errorMessage}`,
+        'Die VTJ-API hat einen Fehler zurückgegeben. Mögliche Ursachen:\n1. Ihre VTJ-Sitzung ist auf dem Server abgelaufen\n2. Die Depot-ID ist ungültig\n3. Die VTJ-API ist vorübergehend nicht verfügbar\n\nBitte versuchen Sie, unten über die Login-URL ein neues Token zu beziehen.'
       );
     }
   } catch (error) {
@@ -235,8 +235,8 @@ export async function getDepot(input: MCPToolInput): Promise<GetDepotResponse | 
 }
 
 /**
- * GET_SESSION_STATUS TOOL
- * Checks token status and validity
+ * GET_SESSION_STATUS-TOOL
+ * Prüft Token-Status und Gültigkeit
  */
 export async function getSessionStatus(input: MCPToolInput): Promise<GetSessionStatusResponse | MCPErrorResponse> {
   try {
@@ -248,9 +248,9 @@ export async function getSessionStatus(input: MCPToolInput): Promise<GetSessionS
       };
     }
 
-    // Check if token is expired
+    // Prüfen, ob das Token abgelaufen ist
     if (isTokenExpired(input.token)) {
-      // Try to get session data even if expired (for depot info)
+      // Sitzungsdaten auch bei Ablauf versuchen zu lesen (für Depotinfo)
       try {
         const payload = decryptToken(input.token);
         return {
@@ -269,7 +269,7 @@ export async function getSessionStatus(input: MCPToolInput): Promise<GetSessionS
       }
     }
 
-    // Validate and extract session data
+    // Sitzungsdaten validieren und extrahieren
     const sessionData = extractSessionData(input.token);
 
     if (!sessionData) {
@@ -297,10 +297,10 @@ export async function getSessionStatus(input: MCPToolInput): Promise<GetSessionS
   }
 }
 
-// ==================== TOOL DISPATCHER ====================
+// ==================== TOOL-DISPATCHER ====================
 
 /**
- * Executes an MCP tool by name
+ * Führt ein MCP-Tool anhand des Namens aus
  */
 export async function executeTool(toolName: string, input: any): Promise<MCPToolResult> {
   switch (toolName) {
@@ -317,13 +317,13 @@ export async function executeTool(toolName: string, input: any): Promise<MCPTool
       return createErrorResponse(
         'unknown_tool',
         `Unknown tool: ${toolName}`,
-        'Available tools: authenticate, get_depot, get_session_status'
+        'Verfügbare Tools: authenticate, get_depot, get_session_status'
       );
   }
 }
 
 /**
- * Returns list of available tools
+ * Gibt die Liste der verfügbaren Tools zurück
  */
 export function getAvailableTools(): MCPToolSchema[] {
   return MCP_TOOL_SCHEMAS;

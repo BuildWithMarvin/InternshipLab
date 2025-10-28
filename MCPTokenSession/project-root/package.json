@@ -1,0 +1,26 @@
+{
+  "name": "vtj-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP-Server mit VTJ-API-Auth und Web-Login",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.4",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.3.3"
+  }
+}

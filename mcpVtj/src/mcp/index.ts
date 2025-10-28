@@ -1,4 +1,4 @@
-// MCP Module Exports
+// MCP-Modul-Exporte
 
 // Tools
 export {
@@ -27,7 +27,7 @@ export {
   createMCPRouter
 } from './server.js';
 
-// Protocol
+// Protokoll
 export {
   MCP_PROTOCOL_VERSION,
   MCPRequestType,

@@ -1,4 +1,4 @@
-// Web Module Exports
+// Web-Modul-Exporte
 
 export { createWebApiRouter } from './routes.js';
 export type { SuccessResponse, ErrorResponse, ApiResponse } from './routes.js';
