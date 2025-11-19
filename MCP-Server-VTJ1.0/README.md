@@ -1,304 +1,129 @@
-# MCP TypeScript SDK Examples
+# MCP Demo Server mit VTJ-OAuth-Integration
+
+Dieses Projekt ist ein **Demo-MCP-Server**, der sich über **OAuth** bei einem eigenen Auth-Server authentifiziert und anschließend über die **Visual Trading Journal (VTJ) API** Depotdaten abrufen kann.
+
+## Was macht dieses Projekt?
+
+- Startet einen **MCP-HTTP-Server** (`/mcp`), der Tools bereitstellt:
+  - `greet` – einfaches Begrüßungs-Tool
+  - `vtj-get-depot-info` – ruft Depotdaten aus der VTJ-API ab
+- Startet einen **OAuth-/Auth-Server**, der:
+  - einen Login gegen die **VTJ-API** anbietet
+  - **OAuth 2.0 mit PKCE** bereitstellt
+  - Access Tokens ausgibt und per `/introspect` prüft
+- Speichert VTJ-Accounts (Credentials, Session, Depot-IDs) **in Memory** und macht:
+  - **Auto-ReLogin**, wenn die VTJ-Session abgelaufen ist
+- Nutzt eine **zusätzliche MCP-Session** (über `Mcp-Session-Id`) für
+  - Streaming per **SSE (Server-Sent Events)**  
+  - Zuordnung von Auth-Kontext zu einer laufenden MCP-Session
+
+
+
+## Wie spielen VTJ, OAuth und MCP zusammen?
+
+### 1. VTJ-Login (Auth-Server)
+
+1. User ruft `/authorize` auf → wird zu `/login` umgeleitet, falls noch nicht eingeloggt.
+2. `POST /login`:
+   - schickt Username/Passwort an `VTJ_LOGIN_URL`
+   - VTJ-API liefert `user._id`, `session` und Depots
+   - Es wird ein **VTJ-Account** im In-Memory-Store angelegt:
+     - `userId` (VTJ-User-ID)
+     - `vtjUsername` / `vtjPassword`
+     - `vtjSession`
+     - `depotIds`
+   - User-Infos landen in der **Express-Session** (`req.session.user`).
+
+### 2. OAuth-Flow
+
+3. Beim Aufruf von `/authorize` mit PKCE:
+   - `authorizePreHook` hängt die VTJ-`userId` an die `code_challenge` (Mapping in einer Map).
+4. Der Auth-Server gibt einen **Authorization Code** zurück.
+5. Der Client tauscht den Code gegen ein **Access-Token**:
+   - intern wird `code_challenge → userId` aufgelöst
+   - zu dem Token wird serverseitig gespeichert:
+     - `extra.userId = <VTJ-User-ID>`
+
+> Wichtig:  
+> - Der Token-String selbst ist nur ein zufälliger UUID-String.  
+> - Die `userId` steckt **nicht im Token**, sondern in der **Token-Metadaten-Map** auf dem Server.
+
+### 3. Token-Introspektion
+
+6. Der MCP-Server erhält Requests mit `Authorization: Bearer <access_token>`.
+7. Er prüft das Token über `/introspect` beim Auth-Server.
+8. Die Antwort enthält u. a.:
+   - `user_id` (VTJ-User-ID)
+   - `vtj_session`
+   - `depot_ids`
+   - `vtj_status`
+9. Diese Infos werden im MCP-Server in `sessionAuth[sessionId]` gespeichert und stehen den Tools zur Verfügung.
+
+### 4. VTJ-Depotzugriff + Auto-ReLogin
+
+10. Das MCP-Tool `vtj-get-depot-info`:
+    - liest `userId` + `depotIds` aus `sessionAuth[extra.sessionId]`
+    - ruft `callVtjDepotApiWithAutoRelogin(userId, depotId?)` auf
+11. `callVtjDepotApiWithAutoRelogin`:
+    - nimmt die aktuelle `vtjSession` aus dem VTJ-Account
+    - ruft `GET VTJ_API_BASE_URL/depot/account?depot=...` mit Header `session: <vtjSession>` auf
+    - wenn 401/403:
+      - führt Auto-ReLogin mit gespeicherten Credentials durch
+      - aktualisiert `vtjSession` + `depotIds`
+      - versucht den Depot-Call erneut
+
+---
+
+## Session-Ebenen im Projekt
+
+Es gibt **drei verschiedene „Sessions“**, die getrennt sind:
+
+1. **Express-Session (Auth-Server)**  
+   - Cookie-basierte Session im Browser  
+   - Speichert: VTJ-User (für `/login` und `/authorize`)
+
+2. **OAuth-Access-Token**  
+   - Wird aus dem Authorization Code erzeugt  
+   - Ist nur ein Random-String (UUID)  
+   - Auf dem Auth-Server: Mapping `token → { clientId, scopes, extra.userId, ... }`  
+   - Zwischen MCP-Server und Auth-Server wird `user_id` über `/introspect` übertragen.
+
+3. **MCP-Session (für Streaming/SSE)**  
+   - Eigene Session-ID (`Mcp-Session-Id`) im Header  
+   - Wird beim ersten MCP-Initialize-Request erzeugt  
+   - Dient dazu:
+     - den passenden `StreamableHTTPServerTransport` zu finden  
+     - Auth-Kontext (`sessionAuth[sessionId]`) für Tools bereitzuhalten  
+     - denselben Stream über `GET /mcp` (SSE) wieder anzuschließen
+
+---
+
+## Projektstruktur (relevante Dateien)
 
-This directory contains example implementations of MCP clients and servers using the TypeScript SDK.
+- **`demoInMemoryOAuthProvider.ts`**
+  - VTJ-Account-Store (`VtjAccount`, `vtjAccounts`, `getVtjAccount`, …)
+  - In-Memory-OAuth-Provider (`DemoInMemoryAuthProvider`)
+  - Auth-Server-Setup (`setupAuthServer` mit `/login`, `/introspect`, `/authorize`)
 
-## Table of Contents
+- **`mcp-server.ts`**
+  - Erstellt den MCP-Server (`createMcpServer`)
+  - Registriert:
+    - `greet`
+    - `vtj-get-depot-info` (ruft VTJ-Depot-API über `callVtjDepotApiWithAutoRelogin`)
 
-- [Client Implementations](#client-implementations)
-    - [Streamable HTTP Client](#streamable-http-client)
-    - [Backwards Compatible Client](#backwards-compatible-client)
-- [Server Implementations](#server-implementations)
-    - [Single Node Deployment](#single-node-deployment)
-        - [Streamable HTTP Transport](#streamable-http-transport)
-        - [Deprecated SSE Transport](#deprecated-sse-transport)
-        - [Backwards Compatible Server](#streamable-http-backwards-compatible-server-with-sse)
-    - [Multi-Node Deployment](#multi-node-deployment)
-- [Backwards Compatibility](#testing-streamable-http-backwards-compatibility-with-sse)
+- **`mcpHttpHandlers.ts`**
+  - `createMcpPostHandler` – verarbeitet MCP-Requests (JSON-RPC)
+  - `createMcpGetHandler` – stellt SSE-Verbindung für MCP-Streaming bereit
+  - Verknüpft MCP-Session-ID ↔ Transport ↔ Auth-Kontext
 
-## Client Implementations
+- **`vtjClient.ts`**
+  - Lädt VTJ-Konfiguration aus `vtj-config.json`
+  - Implementiert Auto-ReLogin mit gespeicherten Credentials
+  - `callVtjDepotApiWithAutoRelogin(userId, depotId?)`  
+    → zentrale Funktion für Depotzugriffe mit Session-Refresh
 
-### Streamable HTTP Client
+---
 
-A full-featured interactive client that connects to a Streamable HTTP server, demonstrating how to:
 
-- Establish and manage a connection to an MCP server
-- List and call tools with arguments
-- Handle notifications through the SSE stream
-- List and get prompts with arguments
-- List available resources
-- Handle session termination and reconnection
-- Support for resumability with Last-Event-ID tracking
 
-```bash
-npx tsx src/examples/client/simpleStreamableHttp.ts
-```
 
-Example client with OAuth:
-
-```bash
-npx tsx src/examples/client/simpleOAuthClient.js
-```
-
-### Backwards Compatible Client
-
-A client that implements backwards compatibility according to the [MCP specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility), allowing it to work with both new and legacy servers. This client demonstrates:
-
-- The client first POSTs an initialize request to the server URL:
-    - If successful, it uses the Streamable HTTP transport
-    - If it fails with a 4xx status, it attempts a GET request to establish an SSE stream
-
-```bash
-npx tsx src/examples/client/streamableHttpWithSseFallbackClient.ts
-```
-
-## Server Implementations
-
-### Single Node Deployment
-
-These examples demonstrate how to set up an MCP server on a single node with different transport options.
-
-#### Streamable HTTP Transport
-
-##### Simple Streamable HTTP Server
-
-A server that implements the Streamable HTTP transport (protocol version 2025-03-26).
-
-- Basic server setup with Express and the Streamable HTTP transport
-- Session management with an in-memory event store for resumability
-- Tool implementation with the `greet` and `multi-greet` tools
-- Prompt implementation with the `greeting-template` prompt
-- Static resource exposure
-- Support for notifications via SSE stream established by GET requests
-- Session termination via DELETE requests
-
-```bash
-npx tsx src/examples/server/simpleStreamableHttp.ts
-
-# To add a demo of authentication to this example, use:
-npx tsx src/examples/server/simpleStreamableHttp.ts --oauth
-
-# To mitigate impersonation risks, enable strict Resource Identifier verification:
-npx tsx src/examples/server/simpleStreamableHttp.ts --oauth --oauth-strict
-```
-
-##### JSON Response Mode Server
-
-A server that uses Streamable HTTP transport with JSON response mode enabled (no SSE).
-
-- Streamable HTTP with JSON response mode, which returns responses directly in the response body
-- Limited support for notifications (since SSE is disabled)
-- Proper response handling according to the MCP specification for servers that don't support SSE
-- Returning appropriate HTTP status codes for unsupported methods
-
-```bash
-npx tsx src/examples/server/jsonResponseStreamableHttp.ts
-```
-
-##### Streamable HTTP with server notifications
-
-A server that demonstrates server notifications using Streamable HTTP.
-
-- Resource list change notifications with dynamically added resources
-- Automatic resource creation on a timed interval
-
-```bash
-npx tsx src/examples/server/standaloneSseWithGetStreamableHttp.ts
-```
-
-#### Deprecated SSE Transport
-
-A server that implements the deprecated HTTP+SSE transport (protocol version 2024-11-05). This example only used for testing backwards compatibility for clients.
-
-- Two separate endpoints: `/mcp` for the SSE stream (GET) and `/messages` for client messages (POST)
-- Tool implementation with a `start-notification-stream` tool that demonstrates sending periodic notifications
-
-```bash
-npx tsx src/examples/server/simpleSseServer.ts
-```
-
-#### Streamable Http Backwards Compatible Server with SSE
-
-A server that supports both Streamable HTTP and SSE transports, adhering to the [MCP specification for backwards compatibility](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#backwards-compatibility).
-
-- Single MCP server instance with multiple transport options
-- Support for Streamable HTTP requests at `/mcp` endpoint (GET/POST/DELETE)
-- Support for deprecated SSE transport with `/sse` (GET) and `/messages` (POST)
-- Session type tracking to avoid mixing transport types
-- Notifications and tool execution across both transport types
-
-```bash
-npx tsx src/examples/server/sseAndStreamableHttpCompatibleServer.ts
-```
-
-### Multi-Node Deployment
-
-When deploying MCP servers in a horizontally scaled environment (multiple server instances), there are a few different options that can be useful for different use cases:
-
-- **Stateless mode** - No need to maintain state between calls to MCP servers. Useful for simple API wrapper servers.
-- **Persistent storage mode** - No local state needed, but session data is stored in a database. Example: an MCP server for online ordering where the shopping cart is stored in a database.
-- **Local state with message routing** - Local state is needed, and all requests for a session must be routed to the correct node. This can be done with a message queue and pub/sub system.
-
-#### Stateless Mode
-
-The Streamable HTTP transport can be configured to operate without tracking sessions. This is perfect for simple API proxies or when each request is completely independent.
-
-##### Implementation
-
-To enable stateless mode, configure the `StreamableHTTPServerTransport` with:
-
-```typescript
-sessionIdGenerator: undefined;
-```
-
-This disables session management entirely, and the server won't generate or expect session IDs.
-
-- No session ID headers are sent or expected
-- Any server node can process any request
-- No state is preserved between requests
-- Perfect for RESTful or stateless API scenarios
-- Simplest deployment model with minimal infrastructure requirements
-
-```
-┌─────────────────────────────────────────────┐
-│                  Client                     │
-└─────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│                Load Balancer                │
-└─────────────────────────────────────────────┘
-          │                       │
-          ▼                       ▼
-┌─────────────────┐     ┌─────────────────────┐
-│  MCP Server #1  │     │    MCP Server #2    │
-│ (Node.js)       │     │  (Node.js)          │
-└─────────────────┘     └─────────────────────┘
-```
-
-#### Persistent Storage Mode
-
-For cases where you need session continuity but don't need to maintain in-memory state on specific nodes, you can use a database to persist session data while still allowing any node to handle requests.
-
-##### Implementation
-
-Configure the transport with session management, but retrieve and store all state in an external persistent storage:
-
-```typescript
-sessionIdGenerator: () => randomUUID(),
-eventStore: databaseEventStore
-```
-
-All session state is stored in the database, and any node can serve any client by retrieving the state when needed.
-
-- Maintains sessions with unique IDs
-- Stores all session data in an external database
-- Provides resumability through the database-backed EventStore
-- Any node can handle any request for the same session
-- No node-specific memory state means no need for message routing
-- Good for applications where state can be fully externalized
-- Somewhat higher latency due to database access for each request
-
-```
-┌─────────────────────────────────────────────┐
-│                  Client                     │
-└─────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│                Load Balancer                │
-└─────────────────────────────────────────────┘
-          │                       │
-          ▼                       ▼
-┌─────────────────┐     ┌─────────────────────┐
-│  MCP Server #1  │     │    MCP Server #2    │
-│ (Node.js)       │     │  (Node.js)          │
-└─────────────────┘     └─────────────────────┘
-          │                       │
-          │                       │
-          ▼                       ▼
-┌─────────────────────────────────────────────┐
-│           Database (PostgreSQL)             │
-│                                             │
-│  • Session state                            │
-│  • Event storage for resumability           │
-└─────────────────────────────────────────────┘
-```
-
-#### Streamable HTTP with Distributed Message Routing
-
-For scenarios where local in-memory state must be maintained on specific nodes (such as Computer Use or complex session state), the Streamable HTTP transport can be combined with a pub/sub system to route messages to the correct node handling each session.
-
-1. **Bidirectional Message Queue Integration**:
-    - All nodes both publish to and subscribe from the message queue
-    - Each node registers the sessions it's actively handling
-    - Messages are routed based on session ownership
-
-2. **Request Handling Flow**:
-    - When a client connects to Node A with an existing `mcp-session-id`
-    - If Node A doesn't own this session, it:
-        - Establishes and maintains the SSE connection with the client
-        - Publishes the request to the message queue with the session ID
-        - Node B (which owns the session) receives the request from the queue
-        - Node B processes the request with its local session state
-        - Node B publishes responses/notifications back to the queue
-        - Node A subscribes to the response channel and forwards to the client
-
-3. **Channel Identification**:
-    - Each message channel combines both `mcp-session-id` and `stream-id`
-    - This ensures responses are correctly routed back to the originating connection
-
-```
-┌─────────────────────────────────────────────┐
-│                  Client                     │
-└─────────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────┐
-│                Load Balancer                │
-└─────────────────────────────────────────────┘
-          │                       │
-          ▼                       ▼
-┌─────────────────┐     ┌─────────────────────┐
-│  MCP Server #1  │◄───►│    MCP Server #2    │
-│ (Has Session A) │     │  (Has Session B)    │
-└─────────────────┘     └─────────────────────┘
-          ▲│                     ▲│
-          │▼                     │▼
-┌─────────────────────────────────────────────┐
-│         Message Queue / Pub-Sub             │
-│                                             │
-│  • Session ownership registry               │
-│  • Bidirectional message routing            │
-│  • Request/response forwarding              │
-└─────────────────────────────────────────────┘
-```
-
-- Maintains session affinity for stateful operations without client redirection
-- Enables horizontal scaling while preserving complex in-memory state
-- Provides fault tolerance through the message queue as intermediary
-
-## Backwards Compatibility
-
-### Testing Streamable HTTP Backwards Compatibility with SSE
-
-To test the backwards compatibility features:
-
-1. Start one of the server implementations:
-
-    ```bash
-    # Legacy SSE server (protocol version 2024-11-05)
-    npx tsx src/examples/server/simpleSseServer.ts
-
-    # Streamable HTTP server (protocol version 2025-03-26)
-    npx tsx src/examples/server/simpleStreamableHttp.ts
-
-    # Backwards compatible server (supports both protocols)
-    npx tsx src/examples/server/sseAndStreamableHttpCompatibleServer.ts
-    ```
-
-2. Then run the backwards compatible client:
-    ```bash
-    npx tsx src/examples/client/streamableHttpWithSseFallbackClient.ts
-    ```
-
-This demonstrates how the MCP ecosystem ensures interoperability between clients and servers regardless of which protocol version they were built for.
