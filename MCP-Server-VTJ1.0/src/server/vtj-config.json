@@ -1,0 +1,8 @@
+{
+  "VTJ_LOGIN_URL": "https://api.visualtradingjournal.com/api/v1/vtj/user/login",
+  "VTJ_CLIENT_ID": "vtj-app",
+  "VTJ_APP_VERSION": "v2.5.2",
+  "VTJ_API_BASE_URL": "https://api.visualtradingjournal.com/api/v1/vtj",
+  "MCP_PORT": 3000,
+  "MCP_AUTH_PORT": 3001
+}
